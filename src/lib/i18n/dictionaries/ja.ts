@@ -1,0 +1,425 @@
+import type ko from "./ko";
+
+const dict: typeof ko = {
+  meta: {
+    title: "安心シグナル | 一人暮らし高齢者見守りシステム",
+    description:
+      "自治体・福祉機関のための孤独死予防モニタリングソリューション。既存予算の1%で管内の一人暮らし高齢者を24時間安全に見守ります。",
+  },
+
+  brand: {
+    name: "安心シグナル",
+    sub: "ANSHIN SIGNAL",
+  },
+
+  nav: {
+    features: "機能",
+    roi: "予算効果",
+    process: "導入プロセス",
+    faq: "よくあるご質問",
+    login: "ログイン",
+    contact: "導入のお問い合わせ",
+    dashboard: "見守りダッシュボード",
+    users: "対象者管理",
+    managers: "運営者管理",
+    alerts: "通知履歴",
+    reports: "月次レポート",
+    settings: "システム設定",
+    support: "テクニカルサポート 0120-000-000",
+    comingSoon: "準備中",
+    breadcrumb: "業務システム",
+  },
+
+  status: {
+    safe: "安全",
+    warn: "注意",
+    danger: "緊急",
+  },
+
+  landing: {
+    hero: {
+      badge: "自治体・福祉機関専用 B2G ソリューション",
+      title: {
+        line1: "見守りカメラを設置せずに、",
+        line2Pre: "既存予算の ",
+        line2Highlight: "1%",
+        line2Post: " で",
+        line3Pre: "管内の孤独死を ",
+        line3Highlight: "ゼロ(0)",
+        line3Post: "へ",
+      },
+      desc: "安心シグナルは、一人暮らし高齢者の毎日の安否シグナルをリアルタイムに収集し、未確認時に担当職員・ケースワーカーへ即座に通知する",
+      descStrong: " 公共見守りダッシュボード ",
+      descTail: "です。",
+      ctaPrimary: "導入のお問い合わせ・デモ申込",
+      ctaSecondary: "ライブデモを見る",
+      bullets: [
+        "個人情報は最小限のみ収集 (氏名・連絡先のみ)",
+        "既存インフラをそのまま活用",
+        "30日間の無料トライアル運用",
+      ],
+      mockup: {
+        org: "◯◯区役所 福祉課",
+        title: "リアルタイム見守り",
+        updatedAt: "2026.05.06 09:14 更新",
+        statTotal: "総数",
+        statDanger: "緊急",
+        statWarn: "注意",
+        statSafe: "安全",
+        criticalName: "田中 花子 (82歳)",
+        criticalDistrict: "桜町1丁目",
+        criticalElapsed: "53時間未確認",
+        criticalContactLabel: "緊急連絡先 090-2341-9981",
+        criticalCta: "今すぐ電話する →",
+        warnName: "鈴木 美智子 (75歳)",
+        warnDistrict: "桃ヶ丘2丁目",
+        warnElapsed: "36時間未確認",
+      },
+    },
+
+    social: [
+      { number: "約68,000人", label: "2023年 国内孤独死推計", sub: "警察庁 推計" },
+      { number: "+12%", label: "前年比 増加率", sub: "毎年急上昇" },
+      { number: "70%↑", label: "65歳以上の比率", sub: "高齢単身世帯の急増" },
+    ],
+
+    features: {
+      badge: "主要機能",
+      title: {
+        line1: "現場の職員がそのまま使える、",
+        line2: "落ち着いた業務システム",
+      },
+      desc: "難しい操作は不要、信号機のように一目で把握 — 緊急対象者だけを素早く絞り込み、即対応できるよう設計しました。",
+      items: [
+        {
+          title: "1日1回の安否シグナル",
+          desc: "対象者がモバイルアプリで「ボタン1つ」タップするだけで安否確認完了。専用機器・カメラは不要です。",
+        },
+        {
+          title: "段階別の自動通知",
+          desc: "24時間未確認 → 注意(黄色)、48時間未確認 → 緊急(赤)へ自動切替し、担当者へ通知を送信します。",
+        },
+        {
+          title: "ワンクリック緊急対応",
+          desc: "ダッシュボードから緊急連絡先へ即発信・SMS、現地訪問記録までを1画面で管理できます。",
+        },
+        {
+          title: "組織別の権限管理",
+          desc: "区役所本庁・地域包括支援センター・社会福祉協議会単位で権限を分離。担当エリアのみ表示し安全に隔離します。",
+        },
+        {
+          title: "個人情報の最小化",
+          desc: "氏名と緊急連絡先以外は収集しません。位置情報の取得もなし。個人情報保護法に準拠。",
+        },
+        {
+          title: "月次レポート自動生成",
+          desc: "対応履歴・予防件数・エリア別統計を自動集計。議会・監査資料としてそのまま活用できます。",
+        },
+      ],
+    },
+
+    roi: {
+      badge: "予算削減効果",
+      title: {
+        line1: "1台20万円の見守りカメラの代わりに、",
+        line2Pre: "",
+        line2Highlight: "1名あたり 月 ¥100",
+        line2Post: " で十分です",
+      },
+      desc: "カメラ設置型の見守りは1世帯あたり平均20〜30万円の初期投資と常時監視員が必要です。安心シグナルは既存のスマートフォンをそのまま活用し、",
+      descStrong: " 初期費用0円、月額1名あたり ¥100",
+      descTail: " で同等の見守り効果を実現します。",
+      compare: {
+        existing: { title: "既存カメラ方式", price: "2,400万円", detail: "120世帯 × 20万円 初期費用" },
+        ours: { title: "安心シグナル導入", price: "月 ¥12,000", detail: "120名 × ¥100/月 サブスク" },
+      },
+      footnote: "* 想定モデルケース基準 / 実際の単価は協定により調整されます。",
+      effectCard: {
+        eyebrow: "想定効果",
+        headline: "年間予算 99% 削減",
+        rows: [
+          { label: "初期導入費用", value: "0円", sub: "既存端末を活用" },
+          { label: "月次運用費 (120名想定)", value: "¥12,000", sub: "1名あたり ¥100" },
+          { label: "年間運用費", value: "¥144,000", sub: "監視員不要" },
+          { label: "予防可能事案 (推定)", value: "月2〜3件", sub: "48時間以内に即把握" },
+        ],
+      },
+    },
+
+    process: {
+      badge: "導入プロセス",
+      title: "お問い合わせから試験運用まで平均2週間",
+      steps: [
+        { n: "01", t: "導入のお問い合わせ", d: "ご担当者情報・対象規模をお知らせください" },
+        { n: "02", t: "カスタム提案書", d: "自治体ブランド適用・予算見積をご提供" },
+        { n: "03", t: "試験運用 (30日)", d: "1丁目単位で無料運用検証" },
+        { n: "04", t: "本契約・拡大", d: "自治体アプリブランディング後、全エリアへ展開" },
+      ],
+      stepLabel: "STEP",
+    },
+
+    cta: {
+      title: {
+        line1: "管内のたった一人の孤独な死も",
+        line2: "見逃さない行政を、いま始めましょう。",
+      },
+      desc: "ご担当者様へ30分のオンラインデモとカスタム提案書をお送りします。営業日1日以内にご返信いたします。",
+      ctaPrimary: "導入のお問い合わせ・デモ申込",
+      ctaSecondary: "提案書PDFダウンロード",
+      contactCard: {
+        hours: "平日 09:00〜18:00 (昼休み 12:00〜13:00 を除く)",
+        phone: "0120-000-000",
+        items: [
+          "・メール : sales@anshin-signal.jp",
+          "・住所 : 東京都◯◯区安心通り1-2-3 安心ビル4F",
+          "・運営 : 株式会社アンシンシグナル / 代表 山田 安心",
+        ],
+      },
+    },
+
+    footer: {
+      copyright:
+        "株式会社アンシンシグナル · All rights reserved. 本サービスはデジタル庁セキュリティ要件および個人情報保護法に準拠しています。",
+    },
+  },
+
+  auth: {
+    brandPanel: {
+      title: {
+        line1: "管内の一人暮らし世帯の毎日の安否を、",
+        line2: "丁寧にひとつにまとめます。",
+      },
+      desc: "安心シグナルはデジタル庁セキュリティ要件および個人情報保護法に準拠し、すべてのデータは国内データセンターで暗号化保存されます。",
+      bullets: [
+        "職員・ケースワーカー専用クローズドシステム",
+        "二要素認証および個人情報アクセスログ",
+        "全区間 TLS 1.3 + AES-256 保存暗号化",
+      ],
+      legal: "株式会社アンシンシグナル · 法人番号 0000-00-000000",
+    },
+    login: {
+      title: "業務システム ログイン",
+      subtitle: "職員・ケースワーカー専用です。一般会員の方はモバイルアプリ(살아있지?)をご利用ください。",
+      labelEmail: "職員メールアドレス",
+      placeholderEmail: "name@city.oo.lg.jp",
+      labelPassword: "パスワード",
+      placeholderPassword: "英字 + 数字 + 記号 10文字以上",
+      forgot: "パスワードをお忘れの方",
+      labelOtp: "認証コード (OTP)",
+      placeholderOtp: "登録された認証アプリの6桁",
+      otpHelp: "セキュリティ強化のため二要素認証を使用します。",
+      remember: "このコンピュータで24時間ログイン状態を保持",
+      submit: "安全にログイン",
+      noAccount: "新規機関登録が必要ですか?",
+      noAccountCta: "アカウント申請",
+      legalNote:
+        "本システムは「個人情報保護法」および「行政手続オンライン化法」に基づき、権限を有する職員・ケースワーカーのみアクセス可能です。すべての接続・閲覧記録は1年間安全に保管されます。",
+    },
+    signup: {
+      title: "機関ご担当者 アカウント申請",
+      subtitle:
+        "ご入力いただいた情報で本人確認後、1営業日以内に管理者承認を行います。",
+      labelOrg: "所属自治体・機関名",
+      placeholderOrg: "例: ◯◯区役所 / ◯◯社会福祉協議会",
+      labelDept: "部署・支援センター",
+      placeholderDept: "例: 福祉課 / 桜町地域包括支援センター",
+      labelPosition: "役職",
+      placeholderPosition: "例: 主任",
+      labelName: "氏名",
+      placeholderName: "山田 太郎",
+      labelEmail: "職員メールアドレス (.lg.jp 推奨)",
+      placeholderEmail: "name@city.oo.lg.jp",
+      emailHelp: "本人確認はご入力いただいたメールアドレスへ送信します。",
+      labelPhone: "連絡先",
+      placeholderPhone: "03-0000-0000",
+      labelPassword: "パスワード",
+      placeholderPassword: "10文字以上",
+      labelPassword2: "パスワード (確認)",
+      terms: {
+        required1: "[必須] 安心シグナル利用規約および運営ポリシーに同意します。",
+        viewTerms: "規約を見る",
+        required2:
+          "[必須] 個人情報の収集・利用に同意します。(目的: 本人確認および権限付与、保有: 退職・退会まで)",
+        optional: "[任意] 新機能のご案内および定期運営レポートの受信に同意します。",
+      },
+      submit: "申請する",
+      hasAccount: "すでにアカウントをお持ちですか?",
+      hasAccountCta: "ログイン",
+    },
+  },
+
+  appHeader: {
+    searchPlaceholder: "対象者 / 住所 / 担当者を検索",
+    role: "管理者",
+    notify: "通知",
+    user: "佐藤 健一 課長",
+    userInitial: "佐",
+  },
+
+  dashboard: {
+    title: "リアルタイム見守りダッシュボード",
+    updated: (when: string) => `最終更新: ${when}`,
+    summary: {
+      totalLabel: "管内の対象者総数",
+      totalUnit: "名",
+      totalSub: (h: number, a: number) => `桜町地区 ${h} · 桃ヶ丘地区 ${a}`,
+      dangerLabel: "🚨 緊急 (48時間未確認)",
+      dangerUnit: "名",
+      dangerSub: "直ちに現地確認が必要",
+      warnLabel: "⚠️ 注意 (24時間未確認)",
+      warnUnit: "名",
+      warnSub: "緊急連絡先への通話を推奨",
+      safeLabel: "✅ 安全 (24時間以内に確認)",
+      safeUnit: "名",
+      safeSub: (rate: number) => `安否応答率 ${rate}%`,
+    },
+    critical: {
+      header: "緊急対応必要 — 緊急/注意 対象者",
+      headerDesc:
+        "下記は優先度の高い対象者です。担当者は直ちにご確認ください。",
+      summary: (d: number, w: number) => `緊急 ${d} · 注意 ${w}`,
+      colElapsed: "未確認時間",
+      colContact: "緊急連絡先",
+      colCaseworker: "担当",
+      btnCall: "今すぐ電話",
+      btnCallA11y: (name: string) => `${name}に今すぐ電話する`,
+      btnSms: "SMS",
+      btnSmsA11y: "SMS送信",
+      btnRecord: "対応記録",
+      btnRecordA11y: "対応を記録",
+      yearsSuffix: "歳",
+      genderM: "男",
+      genderF: "女",
+    },
+    activity: {
+      title: "最新の通知および対応結果",
+      desc: "全エリアのリアルタイム活動 — 自動更新 (60秒間隔)",
+      viewAll: "すべて見る →",
+      labels: {
+        alert: "自動通知",
+        call: "電話対応",
+        visit: "現地訪問",
+        checkin: "安否確認",
+        register: "新規登録",
+      },
+      actorPrefix: "· 対応者 ",
+    },
+    district: {
+      title: "エリア別 安否応答状況",
+      desc: "直近24時間の応答に基づく · 赤いバーは緊急/注意を含むエリア",
+      countSuffix: "名",
+      dangerBadge: (n: number) => `緊急 ${n}`,
+      warnBadge: (n: number) => `注意 ${n}`,
+      mockNames: [
+        "桜町1丁目",
+        "桜町2丁目",
+        "桜町3丁目",
+        "桜町4丁目",
+        "桜町5丁目",
+        "桃ヶ丘1丁目",
+        "桃ヶ丘2丁目",
+        "桃ヶ丘3丁目",
+        "桃ヶ丘4丁目",
+        "桃ヶ丘5丁目",
+      ],
+    },
+  },
+
+  users: {
+    title: "対象者管理",
+    desc: (visible: number, total: number) =>
+      `${visible}名表示中 · 管内登録 ${total}名`,
+    searchPlaceholder: "氏名・住所・担当者で検索",
+    filterAll: "すべて",
+    filterDanger: "🚨 緊急",
+    filterWarn: "⚠️ 注意",
+    filterSafe: "✅ 安全",
+    filterDetailed: "詳細フィルター",
+    btnExport: "現在のリストをエクスポート",
+    btnImport: "CSV一括登録",
+    btnAdd: "個別に対象者を追加",
+    columns: {
+      status: "状態",
+      nameId: "氏名 / 識別番号",
+      age: "年齢",
+      district: "担当エリア / 住所",
+      contact: "緊急連絡先",
+      caseworker: "担当者",
+      lastCheck: "直近の安否確認",
+    },
+    pagination: {
+      summary: (visible: number, total: number) => ({
+        visible,
+        total,
+        suffix: "件 / 全",
+        total2: "件",
+      }),
+      prev: "← 前へ",
+      next: "次へ →",
+    },
+    a11y: {
+      call: "電話する",
+      more: "その他",
+    },
+    yearsSuffix: "歳",
+    genderM: "男",
+    genderF: "女",
+  },
+
+  managers: {
+    title: "運営者管理 · システムアクセス権限",
+    desc: "機関内のシステム利用者アカウントと権限を管理します。",
+    summary: {
+      approved: "承認済み運営者",
+      pending: "承認待ち",
+      suspended: "停止中アカウント",
+      unit: "名",
+      pendingBadge: "要確認",
+    },
+    btnInvite: "招待メール送信",
+    btnAdd: "新規運営者を追加",
+    notice: {
+      title: "権限ガイド",
+      body: "最高管理者は全データ・権限、管理者は担当エリア運営、ケースワーカーは対応記録、閲覧者は読み取り専用権限を持ちます。すべての権限変更は監査ログに90日間保管されます。",
+    },
+    columns: {
+      approvalStatus: "承認状態",
+      department: "所属部署 / 福祉センター",
+      position: "役職",
+      name: "氏名",
+      contact: "連絡先 / メール",
+      role: "権限レベル",
+      joinedAt: "登録日",
+      actions: "操作",
+    },
+    actions: {
+      approve: "承認",
+      reject: "却下",
+      unsuspend: "停止解除",
+      changeRole: "権限変更",
+      moreA11y: "その他",
+    },
+    roles: {
+      admin: { label: "最高管理者", desc: "全権限" },
+      supervisor: { label: "管理者", desc: "エリア運営・承認" },
+      worker: { label: "ケースワーカー", desc: "対応記録" },
+      viewer: { label: "閲覧者", desc: "読み取り専用" },
+    },
+    approvals: {
+      approved: "承認済み",
+      pending: "承認待ち",
+      suspended: "停止中",
+    },
+  },
+
+  localeSwitcher: {
+    label: "言語",
+    ko: "한국어",
+    ja: "日本語",
+    koShort: "KO",
+    jaShort: "JA",
+    a11y: (target: string) => `言語を ${target} に切り替え`,
+  },
+};
+
+export default dict;

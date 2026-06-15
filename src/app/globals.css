@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+/* ===========================================================
+   안심시그널 (Ansim Signal) - 디자인 토큰
+   - Trust Blue (메인): 공공기관 신뢰
+   - Safe Green (보조): 안전/생존 시그널
+   - 상태컬러: 안전(녹색) / 주의(노랑) / 위험(빨강)
+   =========================================================== */
+
+:root {
+  /* Surface */
+  --background: #f6f8fb;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --foreground: #0f172a;
+  --foreground-muted: #475569;
+  --foreground-subtle: #64748b;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  /* Brand: Trust Blue */
+  --trust-50: #eff4ff;
+  --trust-100: #dbe6fe;
+  --trust-200: #bfd2fe;
+  --trust-500: #2563eb;
+  --trust-600: #1d4ed8;
+  --trust-700: #1e3a8a;
+  --trust-800: #1e3577;
+  --trust-900: #172554;
+
+  /* Brand: Safe Green */
+  --safe-50: #ecfdf5;
+  --safe-100: #d1fae5;
+  --safe-500: #16a34a;
+  --safe-600: #15803d;
+  --safe-700: #166534;
+
+  /* 상태 (Traffic) */
+  --status-safe: #16a34a;
+  --status-safe-bg: #dcfce7;
+  --status-safe-fg: #14532d;
+
+  --status-warn: #f59e0b;
+  --status-warn-bg: #fef3c7;
+  --status-warn-fg: #78350f;
+
+  --status-danger: #dc2626;
+  --status-danger-bg: #fee2e2;
+  --status-danger-fg: #7f1d1d;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--foreground-muted);
+  --color-subtle: var(--foreground-subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-trust-50: var(--trust-50);
+  --color-trust-100: var(--trust-100);
+  --color-trust-200: var(--trust-200);
+  --color-trust-500: var(--trust-500);
+  --color-trust-600: var(--trust-600);
+  --color-trust-700: var(--trust-700);
+  --color-trust-800: var(--trust-800);
+  --color-trust-900: var(--trust-900);
+
+  --color-safe-50: var(--safe-50);
+  --color-safe-100: var(--safe-100);
+  --color-safe-500: var(--safe-500);
+  --color-safe-600: var(--safe-600);
+  --color-safe-700: var(--safe-700);
+
+  --color-status-safe: var(--status-safe);
+  --color-status-safe-bg: var(--status-safe-bg);
+  --color-status-safe-fg: var(--status-safe-fg);
+  --color-status-warn: var(--status-warn);
+  --color-status-warn-bg: var(--status-warn-bg);
+  --color-status-warn-fg: var(--status-warn-fg);
+  --color-status-danger: var(--status-danger);
+  --color-status-danger-bg: var(--status-danger-bg);
+  --color-status-danger-fg: var(--status-danger-fg);
+
+  --font-sans: "Pretendard Variable", Pretendard, "Noto Sans JP",
+    -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",
+    "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI",
+    "Yu Gothic", "Meiryo", "Malgun Gothic", system-ui, sans-serif;
+}
+
+/* 일본어 페이지에서는 Noto Sans JP를 우선시 */
+html[lang="ja"] {
+  --font-sans: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Yu Gothic UI", "Yu Gothic", "Meiryo", "Pretendard Variable", Pretendard,
+    -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss06" 1, "tnum" 1;
+}
+
+/* 위급 알림용 펄스 애니메이션 */
+@keyframes pulseDanger {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(220, 38, 38, 0);
+  }
+}
+.pulse-danger {
+  animation: pulseDanger 2s ease-out infinite;
+}
+
+/* 스크롤바 단정하게 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
