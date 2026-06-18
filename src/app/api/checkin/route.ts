@@ -13,9 +13,10 @@ export async function POST(req: NextRequest) {
       `UPDATE users
        SET last_checkin_at = NOW(3),
            alert_sent_at   = NULL,
+           status          = 'safe',
            updated_at      = NOW(3)
-       WHERE id = ?`,
-      [user.id]
+       WHERE user_id = ?`,
+      [user.user_id]
     );
 
     return NextResponse.json({

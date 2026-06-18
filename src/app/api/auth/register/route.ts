@@ -4,9 +4,11 @@ import { RowDataPacket } from 'mysql2';
 import { randomUUID } from 'crypto';
 
 interface InviteCodeRow extends RowDataPacket {
-  worker_name: string;
-  worker_phone: string;
-  organization: string;
+  code_id: number;
+  admin_id: number | null;
+  admin_name: string | null;
+  admin_phone: string | null;
+  org_name: string | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -18,30 +20,37 @@ export async function POST(req: NextRequest) {
     const token      = randomUUID();
 
     let careWorker = null;
+    let adminId: number | null = null;
+
     if (inviteCode) {
       const result = await query<InviteCodeRow>(
-        `SELECT worker_name, worker_phone, organization
-         FROM invite_codes
-         WHERE code = ? AND used = 0`,
+        `SELECT ic.code_id, ic.admin_id,
+                a.name AS admin_name, a.phone AS admin_phone,
+                o.name AS org_name
+         FROM invite_codes ic
+         LEFT JOIN admins a ON ic.admin_id = a.admin_id
+         LEFT JOIN organizations o ON a.organization_id = o.org_id
+         WHERE ic.code = ? AND ic.used = 0`,
         [inviteCode]
       );
       if (result.rows.length > 0) {
         const cw = result.rows[0];
+        adminId = cw.admin_id;
         careWorker = {
-          name:         cw.worker_name,
-          phone:        cw.worker_phone,
-          organization: cw.organization,
+          name:         cw.admin_name,
+          phone:        cw.admin_phone,
+          organization: cw.org_name,
         };
         await execute(
-          'UPDATE invite_codes SET used = 1, used_at = NOW(3) WHERE code = ?',
+          'UPDATE invite_codes SET used = 1, used_at = NOW(3), user_id = LAST_INSERT_ID() WHERE code = ?',
           [inviteCode]
         );
       }
     }
 
     await execute(
-      'INSERT INTO users (token, user_name, lang) VALUES (?, ?, ?)',
-      [token, userName, lang]
+      'INSERT INTO users (name, lang, token, admin_id, joined_at, register_flag) VALUES (?, ?, ?, ?, CURDATE(), 1)',
+      [userName, lang, token, adminId]
     );
 
     return NextResponse.json({ token, care_worker: careWorker }, { status: 201 });

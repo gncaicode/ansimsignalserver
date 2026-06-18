@@ -20,8 +20,8 @@ export async function PATCH(req: NextRequest) {
     }
 
     await execute(
-      'UPDATE users SET interval_hours = ?, updated_at = NOW(3) WHERE id = ?',
-      [intervalHours, user.id]
+      'UPDATE users SET interval_hours = ?, updated_at = NOW(3) WHERE user_id = ?',
+      [intervalHours, user.user_id]
     );
 
     return NextResponse.json({ interval_hours: intervalHours });
