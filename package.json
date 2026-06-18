@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@formatjs/intl-localematcher": "^0.8.6",
+    "bcrypt": "^6.0.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.14.0",
     "mysql2": "^3.22.5",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcrypt": "^6.0.0",
     "@types/negotiator": "^0.6.4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",

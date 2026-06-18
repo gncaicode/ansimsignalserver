@@ -30,7 +30,7 @@ export async function query<T extends RowDataPacket>(
 export async function execute(
   sql: string,
   params?: (string | number | null)[]
-): Promise<{ affectedRows: number }> {
+): Promise<{ affectedRows: number; insertId: number }> {
   const [result] = await getPool().execute<ResultSetHeader>(sql, params);
-  return { affectedRows: result.affectedRows };
+  return { affectedRows: result.affectedRows, insertId: result.insertId };
 }
