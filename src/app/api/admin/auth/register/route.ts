@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
     if (!agreeTerms || !agreePrivacy) {
       return NextResponse.json({ error: '필수 약관에 동의해주세요.' }, { status: 400 });
     }
-    if (password.length < 10) {
-      return NextResponse.json({ error: '비밀번호는 10자 이상이어야 합니다.' }, { status: 400 });
+    if (password.length < 8) {
+      return NextResponse.json({ error: '비밀번호는 8자 이상이어야 합니다.' }, { status: 400 });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: '유효한 이메일 주소를 입력해주세요.' }, { status: 400 });

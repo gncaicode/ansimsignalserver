@@ -124,7 +124,7 @@ export function SignupForm({ lang, t }: { lang: string; t: SignupDict }) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="password">{t.labelPassword}</Label>
-          <Input id="password" type="password" placeholder={t.placeholderPassword}
+          <Input id="password" type="password" placeholder="8자 이상"
             value={form.password} onChange={handle} required />
         </div>
         <div>
