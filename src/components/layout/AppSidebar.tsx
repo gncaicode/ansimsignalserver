@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -9,7 +9,7 @@ import {
   Bell,
   FileBarChart2,
   Settings,
-  LifeBuoy,
+  LogOut,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { cn } from "@/lib/utils";
@@ -33,7 +33,13 @@ export function AppSidebar({
   labels: NavLabels;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const base = `/${locale}`;
+
+  async function logout() {
+    await fetch("/api/admin/auth/logout", { method: "POST" });
+    router.push(`/${locale}/login`);
+  }
 
   const NAV = [
     { href: `${base}/dashboard`, label: labels.dashboard, icon: LayoutDashboard },
@@ -96,13 +102,13 @@ export function AppSidebar({
           <Settings className="h-[18px] w-[18px]" />
           {labels.settings}
         </Link>
-        <Link
-          href="#"
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground hover:bg-surface-muted"
+        <button
+          onClick={logout}
+          className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
         >
-          <LifeBuoy className="h-[18px] w-[18px]" />
-          {labels.support}
-        </Link>
+          <LogOut className="h-[18px] w-[18px]" />
+          로그아웃
+        </button>
       </div>
     </aside>
   );

@@ -7,59 +7,82 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { formatLongDateTime } from "@/lib/i18n/format";
-import { getMockData } from "@/lib/mock-data";
+import { getSession, getAdminHeaderInfo } from "@/lib/session";
+import {
+  getDashboardStats,
+  getCriticalUsers,
+  getDistrictBreakdown,
+  getActivityLog,
+  getOrgName,
+} from "@/lib/dashboard-data";
 
 export default async function DashboardPage(
   props: PageProps<"/[lang]/dashboard">,
 ) {
   const { lang } = await props.params;
   if (!hasLocale(lang)) notFound();
-  const dict = await getDictionary(lang);
-  const data = getMockData(lang);
+
+  const [dict, session] = await Promise.all([getDictionary(lang), getSession()]);
   const t = dict.dashboard;
+  const orgId = session?.organization_id ?? null;
+
+  const [stats, criticalUsers, districtBreakdown, activityLog, orgName] =
+    await Promise.all([
+      getDashboardStats(orgId),
+      getCriticalUsers(orgId),
+      getDistrictBreakdown(orgId),
+      getActivityLog(orgId),
+      getOrgName(orgId),
+    ]);
 
   const today = formatLongDateTime(new Date(), lang);
+  const adminInfo = getAdminHeaderInfo(session);
+
+  const primaryDistrictTotal = districtBreakdown[0]?.total ?? 0;
+  const secondaryDistrictTotal = districtBreakdown[1]?.total ?? 0;
 
   return (
     <>
       <AppHeader
         title={t.title}
         description={t.updated(today)}
-        orgName={data.ORG_NAME}
+        orgName={orgName}
         locale={lang}
         labels={{
           breadcrumb: dict.nav.breadcrumb,
           searchPlaceholder: dict.appHeader.searchPlaceholder,
-          role: dict.appHeader.role,
+          role: adminInfo.role,
           notify: dict.appHeader.notify,
-          user: dict.appHeader.user,
-          userInitial: dict.appHeader.userInitial,
+          user: adminInfo.user,
+          userInitial: adminInfo.userInitial,
         }}
       />
       <main className="flex-1 px-6 py-6 space-y-6 max-w-[1400px] mx-auto w-full">
         <SummaryCards
-          total={data.DASHBOARD_STATS.total}
-          danger={data.DASHBOARD_STATS.danger}
-          warn={data.DASHBOARD_STATS.warn}
-          safe={data.DASHBOARD_STATS.safe}
-          primaryDistrictTotal={data.DASHBOARD_STATS.primaryDistrictTotal}
-          secondaryDistrictTotal={data.DASHBOARD_STATS.secondaryDistrictTotal}
+          total={stats.total}
+          danger={stats.danger}
+          warn={stats.warn}
+          safe={stats.safe}
+          primaryDistrictTotal={primaryDistrictTotal}
+          secondaryDistrictTotal={secondaryDistrictTotal}
           labels={t.summary}
         />
 
-        <CriticalAlertList
-          subjects={data.SUBJECTS}
-          locale={lang}
-          labels={t.critical}
-        />
+        {criticalUsers.length > 0 && (
+          <CriticalAlertList
+            subjects={criticalUsers}
+            locale={lang}
+            labels={t.critical}
+          />
+        )}
 
         <div className="grid lg:grid-cols-[1.7fr_1fr] gap-6">
           <ActivityLog
-            entries={data.ACTIVITY_LOG}
+            entries={activityLog}
             locale={lang}
             labels={t.activity}
           />
-          <DistrictBreakdown labels={t.district} data={data} />
+          <DistrictBreakdown labels={t.district} data={districtBreakdown} />
         </div>
       </main>
     </>
@@ -71,7 +94,7 @@ function DistrictBreakdown({
   data,
 }: {
   labels: Awaited<ReturnType<typeof getDictionary>>["dashboard"]["district"];
-  data: ReturnType<typeof getMockData>;
+  data: { name: string; total: number; danger: number; warn: number; response: number }[];
 }) {
   return (
     <Card>
@@ -80,7 +103,10 @@ function DistrictBreakdown({
         <p className="mt-1 text-xs text-muted">{labels.desc}</p>
       </CardHeader>
       <CardContent className="space-y-3">
-        {data.DISTRICT_BREAKDOWN.map((d) => {
+        {data.length === 0 && (
+          <p className="text-sm text-muted text-center py-4">데이터 없음</p>
+        )}
+        {data.map((d) => {
           const hasIssue = d.danger > 0 || d.warn > 0;
           return (
             <div key={d.name}>

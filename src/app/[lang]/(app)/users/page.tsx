@@ -1,57 +1,64 @@
 import { notFound } from "next/navigation";
-import {
-  Upload,
-  UserPlus,
-  Filter,
-  Search,
-  Download,
-  MoreHorizontal,
-  Phone,
-} from "lucide-react";
+import { Download, Search } from "lucide-react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/brand/StatusBadge";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
 import { getDictionary, hasLocale, type Locale } from "@/lib/i18n";
-import { formatRelativeTime, formatShortDateTime } from "@/lib/i18n/format";
-import { getMockData } from "@/lib/mock-data";
+import { getSession, getAdminHeaderInfo } from "@/lib/session";
+import { getUsers, getOrgName, getDistrictOptions, getAdminOptions } from "@/lib/dashboard-data";
+import { UserAddModal } from "@/components/dashboard/UserAddModal";
+import { UsersTable } from "@/components/dashboard/UsersTable";
+import { BulkImportModal } from "@/components/dashboard/BulkImportModal";
+
+const PAGE_SIZE = 20;
 
 export default async function UsersPage(props: PageProps<"/[lang]/users">) {
   const { lang } = await props.params;
   if (!hasLocale(lang)) notFound();
-  const dict = await getDictionary(lang);
-  const data = getMockData(lang);
+
+  // searchParams는 Next.js 15+에서 Promise
+  const searchParams = await (props as any).searchParams;
+  const statusFilter = searchParams?.status ?? "all";
+  const page = Math.max(1, Number(searchParams?.page ?? 1));
+
+  const [dict, session] = await Promise.all([getDictionary(lang), getSession()]);
   const t = dict.users;
+  const orgId = session?.organization_id ?? null;
+
+  const adminInfo = getAdminHeaderInfo(session);
+
+  const [{ users, total }, orgName, districtOptions, adminOptions] = await Promise.all([
+    getUsers(orgId, statusFilter, page, PAGE_SIZE),
+    getOrgName(orgId),
+    getDistrictOptions(orgId),
+    getAdminOptions(orgId),
+  ]);
+
+  const dangerCount = users.filter((u) => u.status === "danger").length;
+  const warnCount   = users.filter((u) => u.status === "warn").length;
+  const safeCount   = users.filter((u) => u.status === "safe").length;
+  const totalPages  = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
       <AppHeader
         title={t.title}
-        description={t.desc(data.SUBJECTS.length, data.DASHBOARD_STATS.total)}
-        orgName={data.ORG_NAME}
+        description={t.desc(users.length, total)}
+        orgName={orgName}
         locale={lang}
         labels={{
           breadcrumb: dict.nav.breadcrumb,
           searchPlaceholder: dict.appHeader.searchPlaceholder,
-          role: dict.appHeader.role,
+          role: adminInfo.role,
           notify: dict.appHeader.notify,
-          user: dict.appHeader.user,
-          userInitial: dict.appHeader.userInitial,
+          user: adminInfo.user,
+          userInitial: adminInfo.userInitial,
         }}
       />
       <main className="flex-1 px-6 py-6 space-y-5 max-w-[1400px] mx-auto w-full">
         {/* 액션바 */}
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 max-w-xl">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
             <input
               placeholder={t.searchPlaceholder}
@@ -60,136 +67,47 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <FilterPill label={t.filterAll} count={data.SUBJECTS.length} active />
-            <FilterPill
-              label={t.filterDanger}
-              count={data.SUBJECTS.filter((s) => s.status === "danger").length}
-              tone="danger"
-            />
-            <FilterPill
-              label={t.filterWarn}
-              count={data.SUBJECTS.filter((s) => s.status === "warn").length}
-              tone="warn"
-            />
-            <FilterPill
-              label={t.filterSafe}
-              count={data.SUBJECTS.filter((s) => s.status === "safe").length}
-              tone="safe"
-            />
-            <Button variant="ghost" size="sm">
-              <Filter className="h-4 w-4" />
-              {t.filterDetailed}
-            </Button>
+            <FilterPill href={`/${lang}/users?status=all`}   label={t.filterAll}    count={total}       active={statusFilter === "all"} />
+            <FilterPill href={`/${lang}/users?status=danger`} label={t.filterDanger} count={dangerCount} active={statusFilter === "danger"} tone="danger" />
+            <FilterPill href={`/${lang}/users?status=warn`}   label={t.filterWarn}   count={warnCount}   active={statusFilter === "warn"}   tone="warn" />
+            <FilterPill href={`/${lang}/users?status=safe`}   label={t.filterSafe}   count={safeCount}   active={statusFilter === "safe"}   tone="safe" />
           </div>
 
           <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
-            <Button variant="outline" size="md">
-              <Download className="h-4 w-4" />
-              {t.btnExport}
-            </Button>
-            <Button variant="outline" size="md">
-              <Upload className="h-4 w-4" />
-              {t.btnImport}
-            </Button>
-            <Button size="md">
-              <UserPlus className="h-4 w-4" />
-              {t.btnAdd}
-            </Button>
+            <a href="/api/admin/users/export" download>
+              <Button variant="outline" size="md">
+                <Download className="h-4 w-4" />
+                {t.btnExport}
+              </Button>
+            </a>
+            <BulkImportModal />
+            <UserAddModal districts={districtOptions} admins={adminOptions} />
           </div>
         </div>
 
         {/* 테이블 */}
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[80px]">{t.columns.status}</TableHead>
-                  <TableHead>{t.columns.nameId}</TableHead>
-                  <TableHead className="w-[60px] text-center">
-                    {t.columns.age}
-                  </TableHead>
-                  <TableHead>{t.columns.district}</TableHead>
-                  <TableHead>{t.columns.contact}</TableHead>
-                  <TableHead className="w-[100px]">
-                    {t.columns.caseworker}
-                  </TableHead>
-                  <TableHead className="w-[170px]">
-                    {t.columns.lastCheck}
-                  </TableHead>
-                  <TableHead className="w-[50px]" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.SUBJECTS.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell>
-                      <StatusBadge status={s.status} locale={lang} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-semibold">{s.name}</div>
-                      <div className="text-xs text-subtle">{s.id}</div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="font-semibold">{s.age}</span>
-                      <span className="ml-0.5 text-xs text-subtle">
-                        {s.gender === "F" ? t.genderF : t.genderM}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{s.district}</div>
-                      <div className="text-xs text-muted truncate max-w-[260px]">
-                        {s.addressDetail}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">
-                        {s.emergencyContactName}
-                      </div>
-                      <div className="text-xs text-muted">
-                        {s.emergencyContactPhone}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge tone="trust">{s.caseworker}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm font-medium">
-                        {formatRelativeTime(s.lastCheckIn, lang)}
-                      </div>
-                      <div className="text-xs text-subtle">
-                        {formatShortDateTime(s.lastCheckIn, lang)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-0.5">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          aria-label={t.a11y.call}
-                        >
-                          <Phone className="h-4 w-4 text-trust-700" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          aria-label={t.a11y.more}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <UsersTable
+              users={users}
+              locale={lang}
+              districts={districtOptions}
+              admins={adminOptions}
+              t={{
+                columns: t.columns,
+                yearsSuffix: t.yearsSuffix,
+                a11y: t.a11y,
+              }}
+            />
           </CardContent>
 
-          {/* 페이지네이션 */}
           <Pagination
-            visible={data.SUBJECTS.length}
-            total={data.DASHBOARD_STATS.total}
-            locale={lang}
+            page={page}
+            totalPages={totalPages}
+            visible={users.length}
+            total={total}
+            lang={lang}
+            statusFilter={statusFilter}
             t={t}
           />
         </Card>
@@ -199,16 +117,30 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
 }
 
 function Pagination({
-  visible,
-  total,
-  t,
+  page, totalPages, visible, total, lang, statusFilter, t,
 }: {
+  page: number;
+  totalPages: number;
   visible: number;
   total: number;
-  locale: Locale;
+  lang: string;
+  statusFilter: string;
   t: Awaited<ReturnType<typeof getDictionary>>["users"];
 }) {
   const summary = t.pagination.summary(visible, total);
+  const base = `/${lang}/users?status=${statusFilter}&page=`;
+
+  const pages: (number | "…")[] = [];
+  if (totalPages <= 5) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (page > 3) pages.push("…");
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+    if (page < totalPages - 2) pages.push("…");
+    pages.push(totalPages);
+  }
+
   return (
     <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-muted/40 text-sm">
       <span className="text-muted">
@@ -218,64 +150,56 @@ function Pagination({
         {summary.total2}
       </span>
       <div className="flex items-center gap-1">
-        <Button variant="outline" size="sm" disabled>
-          {t.pagination.prev}
-        </Button>
-        {[1, 2, 3, "…", 11].map((p, i) => (
-          <Button
-            key={i}
-            variant={p === 1 ? "primary" : "ghost"}
-            size="sm"
-            className="min-w-9"
-          >
-            {p}
-          </Button>
-        ))}
-        <Button variant="outline" size="sm">
-          {t.pagination.next}
-        </Button>
+        <a href={page > 1 ? `${base}${page - 1}` : undefined as any}>
+          <Button variant="outline" size="sm" disabled={page <= 1}>{t.pagination.prev}</Button>
+        </a>
+        {pages.map((p, i) =>
+          p === "…" ? (
+            <span key={i} className="px-2 text-muted">…</span>
+          ) : (
+            <a key={p} href={`${base}${p}`}>
+              <Button variant={p === page ? "primary" : "ghost"} size="sm" className="min-w-9">{p}</Button>
+            </a>
+          )
+        )}
+        <a href={page < totalPages ? `${base}${page + 1}` : undefined as any}>
+          <Button variant="outline" size="sm" disabled={page >= totalPages}>{t.pagination.next}</Button>
+        </a>
       </div>
     </div>
   );
 }
 
 function FilterPill({
-  label,
-  count,
-  active,
-  tone,
+  href, label, count, active, tone,
 }: {
+  href: string;
   label: string;
   count: number;
   active?: boolean;
   tone?: "danger" | "warn" | "safe";
 }) {
-  const base =
-    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium border transition-colors";
+  const base = "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium border transition-colors";
   if (active) {
     return (
-      <button className={`${base} border-trust-700 bg-trust-700 text-white`}>
-        {label}
-        <span className="rounded-full bg-white/15 px-1.5 text-xs">{count}</span>
-      </button>
+      <a href={href}>
+        <button className={`${base} border-trust-700 bg-trust-700 text-white`}>
+          {label}
+          <span className="rounded-full bg-white/15 px-1.5 text-xs">{count}</span>
+        </button>
+      </a>
     );
   }
   const toneText =
-    tone === "danger"
-      ? "text-status-danger"
-      : tone === "warn"
-      ? "text-status-warn-fg"
-      : tone === "safe"
-      ? "text-status-safe-fg"
-      : "text-foreground";
+    tone === "danger" ? "text-status-danger" :
+    tone === "warn"   ? "text-status-warn-fg" :
+    tone === "safe"   ? "text-status-safe-fg" : "text-foreground";
   return (
-    <button
-      className={`${base} border-border bg-white hover:bg-surface-muted ${toneText}`}
-    >
-      {label}
-      <span className="rounded-full bg-surface-muted px-1.5 text-xs text-muted">
-        {count}
-      </span>
-    </button>
+    <a href={href}>
+      <button className={`${base} border-border bg-white hover:bg-surface-muted ${toneText}`}>
+        {label}
+        <span className="rounded-full bg-surface-muted px-1.5 text-xs text-muted">{count}</span>
+      </button>
+    </a>
   );
 }

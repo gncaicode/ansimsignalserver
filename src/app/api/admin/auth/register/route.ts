@@ -67,8 +67,8 @@ export async function POST(req: NextRequest) {
     await execute(
       `INSERT INTO admins
         (password_hash, name, organization_id, department, position, phone, email,
-         agree_terms, agree_privacy, agree_marketing, joined_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())`,
+         role, agree_terms, agree_privacy, agree_marketing, joined_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'superadmin', ?, ?, ?, CURDATE())`,
       [passwordHash, name, orgId, department, position, phone, email,
        agreeTerms ? 1 : 0, agreePrivacy ? 1 : 0, agreeMarketing ? 1 : 0]
     );

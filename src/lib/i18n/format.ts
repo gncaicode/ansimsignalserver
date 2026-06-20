@@ -54,6 +54,7 @@ export function formatShortDateTime(isoOrDate: string | Date, locale: Locale) {
   const date =
     typeof isoOrDate === "string" ? new Date(isoOrDate) : isoOrDate;
   return new Intl.DateTimeFormat(intlLocaleMap[locale], {
+    timeZone: "Asia/Seoul",
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
@@ -65,6 +66,7 @@ export function formatLongDateTime(isoOrDate: string | Date, locale: Locale) {
   const date =
     typeof isoOrDate === "string" ? new Date(isoOrDate) : isoOrDate;
   return new Intl.DateTimeFormat(intlLocaleMap[locale], {
+    timeZone: "Asia/Seoul",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

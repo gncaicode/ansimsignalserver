@@ -1,4 +1,4 @@
-import { Bell, Search } from "lucide-react";
+import { Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LocaleSwitcher } from "@/components/i18n/LocaleSwitcher";
@@ -43,13 +43,6 @@ export function AppHeader({
         </div>
 
         <div className="ml-auto hidden md:flex items-center gap-2.5">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
-            <input
-              placeholder={labels.searchPlaceholder}
-              className="h-9 w-72 rounded-lg border border-border bg-surface-muted pl-9 pr-3 text-sm text-foreground placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-trust-500"
-            />
-          </div>
           <LocaleSwitcher current={locale} />
           <Button
             variant="outline"
