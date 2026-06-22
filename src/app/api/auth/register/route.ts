@@ -9,6 +9,7 @@ interface InviteCodeRow extends RowDataPacket {
   admin_name: string | null;
   admin_phone: string | null;
   org_name: string | null;
+  user_name: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -24,9 +25,11 @@ export async function POST(req: NextRequest) {
     // 초대코드로 대상자 조회
     const { rows } = await query<InviteCodeRow>(
       `SELECT ic.code_id, ic.user_id, ic.admin_id,
+              u.name AS user_name,
               a.name AS admin_name, a.phone AS admin_phone,
               o.name AS org_name
        FROM invite_codes ic
+       LEFT JOIN users u ON ic.user_id = u.user_id
        LEFT JOIN admins a ON ic.admin_id = a.admin_id
        LEFT JOIN organizations o ON a.organization_id = o.org_id
        WHERE ic.code = ? AND ic.used = 0`,
@@ -57,6 +60,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       token,
+      user: {
+        name: invite.user_name,
+      },
       care_worker: {
         name:         invite.admin_name,
         phone:        invite.admin_phone,

@@ -97,7 +97,7 @@ export function AppSidebar({
 
       <div className="border-t border-border p-3 space-y-1">
         <Link
-          href="#"
+          href={`${base}/settings`}
           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground hover:bg-surface-muted"
         >
           <Settings className="h-[18px] w-[18px]" />
