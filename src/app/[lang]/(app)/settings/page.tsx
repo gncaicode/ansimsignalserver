@@ -3,22 +3,12 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
 import { query } from "@/lib/db";
-import { getAlertCount } from "@/lib/dashboard-data";
+import { getAlertCount, getAdminOptions } from "@/lib/dashboard-data";
 import { SettingsForm } from "@/components/settings/SettingsForm";
 import type { RowDataPacket } from "mysql2";
 
-interface AdminRow extends RowDataPacket {
-  name: string;
-  email: string;
-  phone: string;
-  position: string;
-  department: string;
-}
-
-interface OrgRow extends RowDataPacket {
-  org_id: number;
-  name: string;
-}
+interface OrgRow extends RowDataPacket { name: string; }
+interface DistrictRow extends RowDataPacket { dist_id: number; name: string; }
 
 export default async function SettingsPage(props: PageProps<"/[lang]/settings">) {
   const { lang } = await props.params;
@@ -28,45 +18,54 @@ export default async function SettingsPage(props: PageProps<"/[lang]/settings">)
   const t = dict.settings;
   const adminInfo = getAdminHeaderInfo(session, lang);
 
-  if (!session) {
-    notFound();
-  }
+  if (!session) notFound();
 
-  // 현재 admin 정보 조회
-  const { rows: adminRows } = await query<AdminRow>(
-    `SELECT name, email, phone, position, department
-     FROM admins
-     WHERE admin_id = ?`,
-    [session.admin_id]
-  );
-
-  if (adminRows.length === 0) {
-    notFound();
-  }
-
-  const admin = adminRows[0];
-
-  // 기관 정보 조회
-  let org: OrgRow | null = null;
-  if (session.organization_id) {
-    const { rows: orgRows } = await query<OrgRow>(
-      "SELECT org_id, name FROM organizations WHERE org_id = ?",
-      [session.organization_id]
+  // superadmin만 접근 가능
+  if (session.role !== "superadmin") {
+    return (
+      <>
+        <AppHeader
+          title={t.title}
+          orgName=""
+          locale={lang}
+          labels={{
+            breadcrumb: dict.nav.breadcrumb,
+            searchPlaceholder: dict.appHeader.searchPlaceholder,
+            role: adminInfo.role,
+            notify: dict.appHeader.notify,
+            user: adminInfo.user,
+            userInitial: adminInfo.userInitial,
+          }}
+        />
+        <main className="flex-1 flex items-center justify-center">
+          <p className="text-muted">{t.superadminOnly}</p>
+        </main>
+      </>
     );
-    if (orgRows.length > 0) {
-      org = orgRows[0];
-    }
   }
 
-  const canEditOrg = ["superadmin", "admin"].includes(session.role);
-  const alertCount = await getAlertCount(session.organization_id);
+  const orgId = session.organization_id;
+
+  const [orgRows, districtResult, admins, alertCount] = await Promise.all([
+    orgId
+      ? query<OrgRow>("SELECT name FROM organizations WHERE org_id = ? LIMIT 1", [orgId])
+      : Promise.resolve({ rows: [] as OrgRow[], rowCount: 0 }),
+    orgId
+      ? query<DistrictRow>("SELECT dist_id, name FROM districts WHERE org_id = ? ORDER BY name", [orgId])
+      : Promise.resolve({ rows: [] as DistrictRow[], rowCount: 0 }),
+    getAdminOptions(orgId),
+    getAlertCount(orgId),
+  ]);
+
+  const orgName = orgRows.rows[0]?.name ?? "";
+  const districts = districtResult.rows;
 
   return (
     <>
       <AppHeader
         title={t.title}
         description={t.desc}
-        orgName={org?.name ?? ""}
+        orgName={orgName}
         locale={lang}
         alertCount={alertCount}
         labels={{
@@ -78,7 +77,12 @@ export default async function SettingsPage(props: PageProps<"/[lang]/settings">)
           userInitial: adminInfo.userInitial,
         }}
       />
-      <SettingsForm admin={admin} org={org} t={t} canEditOrg={canEditOrg} />
+      <SettingsForm
+        orgName={orgName}
+        districts={districts}
+        admins={admins}
+        t={t}
+      />
     </>
   );
 }
