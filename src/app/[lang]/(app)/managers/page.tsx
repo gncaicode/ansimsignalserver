@@ -84,9 +84,9 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>{t.columns.name}</TableHead>
                   <TableHead>{t.columns.department}</TableHead>
                   <TableHead className="w-[100px]">{t.columns.position}</TableHead>
-                  <TableHead>{t.columns.name}</TableHead>
                   <TableHead>{t.columns.contact}</TableHead>
                   <TableHead className="w-[140px]">{t.columns.role}</TableHead>
                   <TableHead className="w-[110px]">{t.columns.joinedAt}</TableHead>
@@ -105,10 +105,6 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
                     const role = t.roles[m.role];
                     return (
                       <TableRow key={m.admin_id}>
-                        <TableCell className="font-medium">
-                          {m.department || m.org_name || "—"}
-                        </TableCell>
-                        <TableCell>{m.position || "—"}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2.5">
                             <div className="h-8 w-8 rounded-full bg-trust-700/90 text-white flex items-center justify-center text-xs font-bold">
@@ -117,6 +113,10 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
                             <span className="font-semibold">{m.name}</span>
                           </div>
                         </TableCell>
+                        <TableCell className="font-medium">
+                          {m.department || m.org_name || "—"}
+                        </TableCell>
+                        <TableCell>{m.position || "—"}</TableCell>
                         <TableCell>
                           <div className="text-sm">{m.phone || "—"}</div>
                           <div className="text-xs text-subtle">{m.email}</div>
