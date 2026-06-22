@@ -23,6 +23,7 @@ type NavLabels = {
   settings: string;
   support: string;
   comingSoon: string;
+  logout: string;
 };
 
 export function AppSidebar({
@@ -107,7 +108,7 @@ export function AppSidebar({
           className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
         >
           <LogOut className="h-[18px] w-[18px]" />
-          로그아웃
+          {labels.logout}
         </button>
       </div>
     </aside>

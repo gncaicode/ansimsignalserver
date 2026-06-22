@@ -8,28 +8,34 @@ import { Label } from "@/components/ui/label";
 
 interface Option { id: number; name: string; }
 
+interface T {
+  title: string;
+  name: string; namePlaceholder: string;
+  age: string; agePlaceholder: string;
+  district: string; districtPlaceholder: string;
+  address: string; addressPlaceholder: string;
+  phone: string; phonePlaceholder: string;
+  admin: string; adminPlaceholder: string;
+  cancel: string; submit: string; submitting: string;
+  errorServer: string;
+}
+
 export function UserAddModal({
-  districts,
-  admins,
+  districts, admins, btnLabel, t,
 }: {
   districts: Option[];
   admins: Option[];
+  btnLabel: string;
+  t: T;
 }) {
   const [open, setOpen] = useState(false);
-
   const EMPTY = { name: "", age: "", district_id: "", address: "", emergency_phone: "", admin_id: "" };
 
-  function close() {
-    setOpen(false);
-    setForm(EMPTY);
-    setError("");
-  }
-  const [form, setForm] = useState({
-    name: "", age: "", district_id: "", address: "",
-    emergency_phone: "", admin_id: "",
-  });
-  const [error, setError]   = useState("");
+  const [form, setForm] = useState(EMPTY);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  function close() { setOpen(false); setForm(EMPTY); setError(""); }
 
   function handle(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target;
@@ -58,7 +64,7 @@ export function UserAddModal({
       close();
       window.location.reload();
     } catch {
-      setError("서버와 통신할 수 없습니다.");
+      setError(t.errorServer);
     } finally {
       setLoading(false);
     }
@@ -68,18 +74,15 @@ export function UserAddModal({
     <>
       <Button size="md" onClick={() => setOpen(true)}>
         <UserPlus className="h-4 w-4" />
-        개별 대상자 추가
+        {btnLabel}
       </Button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* 배경 */}
           <div className="absolute inset-0 bg-black/40" onClick={close} />
-
-          {/* 모달 */}
           <div className="relative z-10 w-full max-w-lg bg-white rounded-xl shadow-2xl mx-4">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h2 className="text-base font-bold">대상자 등록</h2>
+              <h2 className="text-base font-bold">{t.title}</h2>
               <button onClick={close} className="text-muted hover:text-foreground">
                 <X className="h-5 w-5" />
               </button>
@@ -88,60 +91,48 @@ export function UserAddModal({
             <form onSubmit={submit} className="px-6 py-5 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="name">이름 *</Label>
-                  <Input id="name" name="name" placeholder="이름" value={form.name} onChange={handle} required />
+                  <Label htmlFor="name">{t.name}</Label>
+                  <Input id="name" name="name" placeholder={t.namePlaceholder} value={form.name} onChange={handle} required />
                 </div>
                 <div>
-                  <Label htmlFor="age">연령 *</Label>
-                  <Input id="age" name="age" type="number" min={1} max={150} placeholder="연령" value={form.age} onChange={handle} required />
+                  <Label htmlFor="age">{t.age}</Label>
+                  <Input id="age" name="age" type="number" min={1} max={150} placeholder={t.agePlaceholder} value={form.age} onChange={handle} required />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="district_id">관할구역</Label>
-                <select
-                  id="district_id" name="district_id"
-                  value={form.district_id} onChange={handle}
-                  className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500"
-                >
-                  <option value="">구역 선택</option>
-                  {districts.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
+                <Label htmlFor="district_id">{t.district}</Label>
+                <select id="district_id" name="district_id" value={form.district_id} onChange={handle}
+                  className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500">
+                  <option value="">{t.districtPlaceholder}</option>
+                  {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
 
               <div>
-                <Label htmlFor="address">주소</Label>
-                <Input id="address" name="address" placeholder="주소" value={form.address} onChange={handle} />
+                <Label htmlFor="address">{t.address}</Label>
+                <Input id="address" name="address" placeholder={t.addressPlaceholder} value={form.address} onChange={handle} />
               </div>
 
               <div>
-                <Label htmlFor="emergency_phone">긴급연락처</Label>
-                <Input id="emergency_phone" name="emergency_phone" inputMode="tel" placeholder="긴급연락처" value={form.emergency_phone} onChange={handle} />
+                <Label htmlFor="emergency_phone">{t.phone}</Label>
+                <Input id="emergency_phone" name="emergency_phone" inputMode="tel" placeholder={t.phonePlaceholder} value={form.emergency_phone} onChange={handle} />
               </div>
 
               <div>
-                <Label htmlFor="admin_id">담당자</Label>
-                <select
-                  id="admin_id" name="admin_id"
-                  value={form.admin_id} onChange={handle}
-                  className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500"
-                >
-                  <option value="">담당자 선택</option>
-                  {admins.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
-                  ))}
+                <Label htmlFor="admin_id">{t.admin}</Label>
+                <select id="admin_id" name="admin_id" value={form.admin_id} onChange={handle}
+                  className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500">
+                  <option value="">{t.adminPlaceholder}</option>
+                  {admins.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
 
               {error && <p className="text-sm text-red-600">{error}</p>}
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={close}>취소</Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? "등록 중..." : "등록"}
-                </Button>
+                <Button type="button" variant="outline" onClick={close}>{t.cancel}</Button>
+                <Button type="submit" disabled={loading}>{loading ? t.submitting : t.submit}</Button>
               </div>
             </form>
           </div>

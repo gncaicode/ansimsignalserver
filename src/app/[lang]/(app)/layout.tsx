@@ -23,6 +23,7 @@ export default async function AppGroupLayout(
           settings: dict.nav.settings,
           support: dict.nav.support,
           comingSoon: dict.nav.comingSoon,
+          logout: dict.nav.logout,
         }}
       />
       <div className="flex-1 min-w-0 flex flex-col">{props.children}</div>

@@ -38,7 +38,7 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
   const t = dict.managers;
   const orgId = session?.organization_id ?? null;
 
-  const adminInfo = getAdminHeaderInfo(session);
+  const adminInfo = getAdminHeaderInfo(session, lang);
   const canEdit = session?.role === "superadmin" || session?.role === "admin";
 
   const [managers, orgName, districtResult] = await Promise.all([
@@ -100,7 +100,7 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
         </Card>
 
         {/* 구역 관리 */}
-        <DistrictManager initial={districts} canEdit={canEdit} />
+        <DistrictManager initial={districts} canEdit={canEdit} t={t.district} />
 
         {/* 테이블 */}
         <Card className="overflow-hidden">
@@ -122,7 +122,7 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
                 {managers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="py-12 text-center text-muted">
-                      등록된 운영자가 없습니다.
+                      {t.empty}
                     </TableCell>
                   </TableRow>
                 ) : (

@@ -38,17 +38,17 @@ export async function getSession(): Promise<AdminSession | null> {
 
 export { COOKIE_NAME };
 
-const ROLE_LABEL: Record<AdminSession["role"], string> = {
-  superadmin:   "최고관리자",
-  admin:        "관리자",
-  social_worker:"복지사",
-  viewer:       "조회자",
+const ROLE_LABEL: Record<AdminSession["role"], Record<string, string>> = {
+  superadmin:   { ko: "최고관리자", ja: "最高管理者" },
+  admin:        { ko: "관리자",     ja: "管理者" },
+  social_worker:{ ko: "복지사",     ja: "福祉士" },
+  viewer:       { ko: "조회자",     ja: "閲覧者" },
 };
 
-export function getAdminHeaderInfo(session: AdminSession | null) {
+export function getAdminHeaderInfo(session: AdminSession | null, locale = "ko") {
   return {
     user:        session?.name        ?? "",
-    role:        session ? ROLE_LABEL[session.role] : "",
+    role:        session ? (ROLE_LABEL[session.role][locale] ?? ROLE_LABEL[session.role]["ko"]) : "",
     userInitial: session?.name.charAt(0) ?? "?",
   };
 }

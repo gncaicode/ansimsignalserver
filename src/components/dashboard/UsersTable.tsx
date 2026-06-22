@@ -16,6 +16,19 @@ import type { UserListItem } from "@/lib/dashboard-data";
 
 interface Option { id: number; name: string; }
 
+interface CommonT {
+  noCheckin: string;
+  unassigned: string;
+  appJoined: string;
+  appJoinedDesc: string;
+  copyCode: string;
+  copied: string;
+  cancel: string;
+  save: string;
+  saving: string;
+  editUserTitle: string;
+}
+
 interface Props {
   users: UserListItem[];
   locale: Locale;
@@ -25,13 +38,43 @@ interface Props {
     columns: { status: string; nameId: string; age: string; district: string; contact: string; caseworker: string; lastCheck: string; };
     yearsSuffix: string;
     a11y: { call: string; more: string; };
+    addModal: {
+      title: string; name: string; namePlaceholder: string;
+      age: string; agePlaceholder: string;
+      district: string; districtPlaceholder: string;
+      address: string; addressPlaceholder: string;
+      phone: string; phonePlaceholder: string;
+      admin: string; adminPlaceholder: string;
+      cancel: string; save: string; saving: string;
+      errorServer: string;
+    };
   };
+  common: CommonT;
 }
 
-function InviteCodeCell({ code }: { code: string }) {
+function copyToClipboard(text: string, onSuccess: () => void) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(onSuccess).catch(() => execCopy(text, onSuccess));
+  } else {
+    execCopy(text, onSuccess);
+  }
+}
+
+function execCopy(text: string, onSuccess: () => void) {
+  const el = document.createElement("textarea");
+  el.value = text;
+  el.style.position = "fixed";
+  el.style.opacity = "0";
+  document.body.appendChild(el);
+  el.select();
+  try { document.execCommand("copy"); onSuccess(); } catch { /* silent */ }
+  document.body.removeChild(el);
+}
+
+function InviteCodeCell({ code, copyCode, copied: copiedLabel }: { code: string; copyCode: string; copied: string }) {
   const [copied, setCopied] = useState(false);
   function copy() {
-    navigator.clipboard.writeText(code).then(() => {
+    copyToClipboard(code, () => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
@@ -42,35 +85,35 @@ function InviteCodeCell({ code }: { code: string }) {
       className="mt-0.5 flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-trust-700 bg-trust-50 hover:bg-trust-100 transition-colors"
     >
       {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-      {copied ? "복사됨" : "초대코드 복사"}
+      {copied ? copiedLabel : copyCode}
     </button>
   );
 }
 
-function ModalInviteCodeButton({ code }: { code: string }) {
+function ModalInviteCodeButton({ code, copyCode, copied: copiedLabel }: { code: string; copyCode: string; copied: string }) {
   const [copied, setCopied] = useState(false);
   function copy() {
-    navigator.clipboard.writeText(code).then(() => {
+    copyToClipboard(code, () => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
   }
   return (
     <div className="rounded-lg bg-surface-muted px-4 py-3 flex items-center justify-between">
-      <p className="text-xs text-muted">초대코드</p>
+      <p className="text-xs text-muted">{copyCode}</p>
       <button
         type="button"
         onClick={copy}
         className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium text-trust-700 bg-trust-50 hover:bg-trust-100 transition-colors"
       >
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-        {copied ? "복사됨" : "초대코드 복사"}
+        {copied ? copiedLabel : copyCode}
       </button>
     </div>
   );
 }
 
-export function UsersTable({ users, locale, districts, admins, t }: Props) {
+export function UsersTable({ users, locale, districts, admins, t, common }: Props) {
   const [editing, setEditing] = useState<UserListItem | null>(null);
   const [form, setForm] = useState({ name: "", age: "", district_id: "", address: "", emergency_phone: "", admin_id: "" });
   const [error, setError] = useState("");
@@ -160,9 +203,9 @@ export function UsersTable({ users, locale, districts, admins, t }: Props) {
                   <div className="font-semibold">{u.name}</div>
                   <div className="text-xs text-subtle">#{u.user_id}</div>
                   {u.register_flag === 1 ? (
-                    <Badge tone="safe" className="mt-0.5 text-[10px]">앱가입완료</Badge>
+                    <Badge tone="safe" className="mt-0.5 text-[10px]">{common.appJoined}</Badge>
                   ) : u.invite_code ? (
-                    <InviteCodeCell code={u.invite_code} />
+                    <InviteCodeCell code={u.invite_code} copyCode={common.copyCode} copied={common.copied} />
                   ) : null}
                 </TableCell>
                 <TableCell className="text-center">
@@ -179,7 +222,7 @@ export function UsersTable({ users, locale, districts, admins, t }: Props) {
                 <TableCell>
                   {u.admin_name
                     ? <Badge tone="trust">{u.admin_name}</Badge>
-                    : <span className="text-xs text-muted">미배정</span>
+                    : <span className="text-xs text-muted">{common.unassigned}</span>
                   }
                 </TableCell>
                 <TableCell>
@@ -189,14 +232,22 @@ export function UsersTable({ users, locale, districts, admins, t }: Props) {
                       <div className="text-xs text-subtle">{formatShortDateTime(u.last_checkin_at, locale)}</div>
                     </>
                   ) : (
-                    <span className="text-xs text-muted">체크인 없음</span>
+                    <span className="text-xs text-muted">{common.noCheckin}</span>
                   )}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-0.5">
-                    <Button size="icon" variant="ghost" aria-label={t.a11y.call}>
-                      <Phone className="h-4 w-4 text-trust-700" />
-                    </Button>
+                    {u.emergency_phone ? (
+                      <a href={`tel:${u.emergency_phone}`} aria-label={t.a11y.call}>
+                        <Button size="icon" variant="ghost">
+                          <Phone className="h-4 w-4 text-trust-700" />
+                        </Button>
+                      </a>
+                    ) : (
+                      <Button size="icon" variant="ghost" disabled aria-label={t.a11y.call}>
+                        <Phone className="h-4 w-4 text-subtle" />
+                      </Button>
+                    )}
                     <Button size="icon" variant="ghost" aria-label="수정" onClick={() => openEdit(u)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -214,7 +265,7 @@ export function UsersTable({ users, locale, districts, admins, t }: Props) {
           <div className="absolute inset-0 bg-black/40" onClick={closeEdit} />
           <div className="relative z-10 w-full max-w-lg bg-white rounded-xl shadow-2xl mx-4">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h2 className="text-base font-bold">대상자 정보 수정</h2>
+              <h2 className="text-base font-bold">{common.editUserTitle}</h2>
               <button onClick={closeEdit} className="text-muted hover:text-foreground">
                 <X className="h-5 w-5" />
               </button>
@@ -223,56 +274,56 @@ export function UsersTable({ users, locale, districts, admins, t }: Props) {
             <form onSubmit={save} className="px-6 py-5 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="e-name">이름 *</Label>
-                  <Input id="e-name" name="name" placeholder="이름" value={form.name} onChange={handle} required />
+                  <Label htmlFor="e-name">{t.addModal.name}</Label>
+                  <Input id="e-name" name="name" placeholder={t.addModal.namePlaceholder} value={form.name} onChange={handle} required />
                 </div>
                 <div>
-                  <Label htmlFor="e-age">연령 *</Label>
-                  <Input id="e-age" name="age" type="number" min={1} max={150} placeholder="연령" value={form.age} onChange={handle} required />
+                  <Label htmlFor="e-age">{t.addModal.age}</Label>
+                  <Input id="e-age" name="age" type="number" min={1} max={150} placeholder={t.addModal.agePlaceholder} value={form.age} onChange={handle} required />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="e-district">관할구역</Label>
+                <Label htmlFor="e-district">{t.addModal.district}</Label>
                 <select id="e-district" name="district_id" value={form.district_id} onChange={handle}
                   className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500">
-                  <option value="">구역 선택</option>
+                  <option value="">{t.addModal.districtPlaceholder}</option>
                   {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
 
               <div>
-                <Label htmlFor="e-address">주소</Label>
-                <Input id="e-address" name="address" placeholder="주소" value={form.address} onChange={handle} />
+                <Label htmlFor="e-address">{t.addModal.address}</Label>
+                <Input id="e-address" name="address" placeholder={t.addModal.addressPlaceholder} value={form.address} onChange={handle} />
               </div>
 
               <div>
-                <Label htmlFor="e-phone">긴급연락처</Label>
-                <Input id="e-phone" name="emergency_phone" inputMode="tel" placeholder="긴급연락처" value={form.emergency_phone} onChange={handle} />
+                <Label htmlFor="e-phone">{t.addModal.phone}</Label>
+                <Input id="e-phone" name="emergency_phone" inputMode="tel" placeholder={t.addModal.phonePlaceholder} value={form.emergency_phone} onChange={handle} />
               </div>
 
               <div>
-                <Label htmlFor="e-admin">담당자</Label>
+                <Label htmlFor="e-admin">{t.addModal.admin}</Label>
                 <select id="e-admin" name="admin_id" value={form.admin_id} onChange={handle}
                   className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500">
-                  <option value="">담당자 선택</option>
+                  <option value="">{t.addModal.adminPlaceholder}</option>
                   {admins.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
 
               {editing.register_flag === 1 ? (
                 <div className="rounded-lg bg-surface-muted px-4 py-3 text-xs text-muted">
-                  앱 가입이 완료된 대상자입니다.
+                  {common.appJoinedDesc}
                 </div>
               ) : editing.invite_code ? (
-                <ModalInviteCodeButton code={editing.invite_code} />
+                <ModalInviteCodeButton code={editing.invite_code} copyCode={common.copyCode} copied={common.copied} />
               ) : null}
 
               {error && <p className="text-sm text-red-600">{error}</p>}
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={closeEdit}>취소</Button>
-                <Button type="submit" disabled={loading}>{loading ? "저장 중..." : "저장"}</Button>
+                <Button type="button" variant="outline" onClick={closeEdit}>{t.addModal.cancel}</Button>
+                <Button type="submit" disabled={loading}>{loading ? t.addModal.saving : t.addModal.save}</Button>
               </div>
             </form>
           </div>

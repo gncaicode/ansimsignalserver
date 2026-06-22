@@ -25,7 +25,7 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
   const t = dict.users;
   const orgId = session?.organization_id ?? null;
 
-  const adminInfo = getAdminHeaderInfo(session);
+  const adminInfo = getAdminHeaderInfo(session, lang);
 
   const [{ users, total }, orgName, districtOptions, adminOptions] = await Promise.all([
     getUsers(orgId, statusFilter, page, PAGE_SIZE),
@@ -80,8 +80,8 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
                 {t.btnExport}
               </Button>
             </a>
-            <BulkImportModal />
-            <UserAddModal districts={districtOptions} admins={adminOptions} />
+            <BulkImportModal btnLabel={t.btnImport} t={t.importModal} />
+            <UserAddModal districts={districtOptions} admins={adminOptions} btnLabel={t.btnAdd} t={t.addModal} />
           </div>
         </div>
 
@@ -97,7 +97,9 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
                 columns: t.columns,
                 yearsSuffix: t.yearsSuffix,
                 a11y: t.a11y,
+                addModal: t.addModal,
               }}
+              common={dict.common}
             />
           </CardContent>
 

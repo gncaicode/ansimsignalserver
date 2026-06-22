@@ -36,7 +36,7 @@ export default async function DashboardPage(
     ]);
 
   const today = formatLongDateTime(new Date(), lang);
-  const adminInfo = getAdminHeaderInfo(session);
+  const adminInfo = getAdminHeaderInfo(session, lang);
 
   const primaryDistrictTotal = districtBreakdown[0]?.total ?? 0;
   const secondaryDistrictTotal = districtBreakdown[1]?.total ?? 0;
