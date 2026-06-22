@@ -43,6 +43,8 @@ const dict = {
     appJoinedDesc: "앱 가입이 완료된 대상자입니다.",
     copyCode: "초대코드 복사",
     copied: "복사됨",
+    reinvite: "재발급",
+    reinviting: "재발급 중...",
     cancel: "취소",
     save: "저장",
     saving: "저장 중...",

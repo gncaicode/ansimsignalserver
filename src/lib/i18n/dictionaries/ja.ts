@@ -45,6 +45,8 @@ const dict: typeof ko = {
     appJoinedDesc: "アプリ登録が完了しています。",
     copyCode: "招待コードをコピー",
     copied: "コピー済",
+    reinvite: "再発行",
+    reinviting: "再発行中...",
     cancel: "キャンセル",
     save: "保存",
     saving: "保存中...",

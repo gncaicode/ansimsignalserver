@@ -23,6 +23,8 @@ interface CommonT {
   appJoinedDesc: string;
   copyCode: string;
   copied: string;
+  reinvite: string;
+  reinviting: string;
   cancel: string;
   save: string;
   saving: string;
@@ -86,6 +88,41 @@ function InviteCodeCell({ code, copyCode, copied: copiedLabel }: { code: string;
     >
       {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
       {copied ? copiedLabel : copyCode}
+    </button>
+  );
+}
+
+function ReinviteButton({
+  userId, reinvite, reinviting, copyCode, copied: copiedLabel,
+}: {
+  userId: number; reinvite: string; reinviting: string; copyCode: string; copied: string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function handleReinvite() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/reinvite`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.code) return;
+      copyToClipboard(data.code, () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleReinvite}
+      disabled={loading}
+      className="mt-0.5 flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-status-warn-fg bg-status-warn-bg hover:opacity-80 transition-colors disabled:opacity-50"
+    >
+      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+      {loading ? reinviting : copied ? copiedLabel : reinvite}
     </button>
   );
 }
@@ -203,7 +240,16 @@ export function UsersTable({ users, locale, districts, admins, t, common }: Prop
                   <div className="font-semibold">{u.name}</div>
                   <div className="text-xs text-subtle">#{u.user_id}</div>
                   {u.register_flag === 1 ? (
-                    <Badge tone="safe" className="mt-0.5 text-[10px]">{common.appJoined}</Badge>
+                    <>
+                      <Badge tone="safe" className="mt-0.5 text-[10px]">{common.appJoined}</Badge>
+                      <ReinviteButton
+                        userId={u.user_id}
+                        reinvite={common.reinvite}
+                        reinviting={common.reinviting}
+                        copyCode={common.copyCode}
+                        copied={common.copied}
+                      />
+                    </>
                   ) : u.invite_code ? (
                     <InviteCodeCell code={u.invite_code} copyCode={common.copyCode} copied={common.copied} />
                   ) : null}
