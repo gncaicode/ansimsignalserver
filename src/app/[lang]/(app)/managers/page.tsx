@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ShieldCheck, UserPlus, Mail, MoreHorizontal } from "lucide-react";
+import { ShieldCheck, MoreHorizontal } from "lucide-react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,19 +10,14 @@ import {
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
 import { getAdmins, getOrgName, getAlertCount } from "@/lib/dashboard-data";
-import type { ManagerRole, ApprovalStatus } from "@/lib/types";
+import { ManagerAddModal } from "@/components/dashboard/ManagerAddModal";
+import type { ManagerRole } from "@/lib/types";
 
 const ROLE_TONE: Record<ManagerRole, "trust" | "neutral" | "outline" | "safe"> = {
   admin:      "trust",
   supervisor: "trust",
   worker:     "safe",
   viewer:     "outline",
-};
-
-const APPROVAL_TONE: Record<ApprovalStatus, "safe" | "warn" | "danger"> = {
-  approved:  "safe",
-  pending:   "warn",
-  suspended: "danger",
 };
 
 export default async function ManagersPage(props: PageProps<"/[lang]/managers">) {
@@ -42,9 +37,11 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
     getAlertCount(orgId),
   ]);
 
-  const approvedCount  = managers.filter((m) => m.approvalStatus === "approved").length;
-  const pendingCount   = managers.filter((m) => m.approvalStatus === "pending").length;
-  const suspendedCount = managers.filter((m) => m.approvalStatus === "suspended").length;
+  const roleOptions = [
+    { value: "admin",         label: t.roles.supervisor.label },
+    { value: "social_worker", label: t.roles.worker.label },
+    { value: "viewer",        label: t.roles.viewer.label },
+  ];
 
   return (
     <>
@@ -64,23 +61,12 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
         }}
       />
       <main className="flex-1 px-6 py-6 space-y-5 max-w-[1400px] mx-auto w-full">
-        {/* 요약 카드 + 액션 */}
-        <div className="grid lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 items-end">
-          <SummaryStat label={t.summary.approved}  value={approvedCount}  unit={t.summary.unit} tone="safe" />
-          <SummaryStat label={t.summary.pending}   value={pendingCount}   unit={t.summary.unit} tone="warn"
-            badge={pendingCount > 0 ? t.summary.pendingBadge : undefined} />
-          <SummaryStat label={t.summary.suspended} value={suspendedCount} unit={t.summary.unit} tone="danger" />
-          <div className="flex gap-2">
-            <Button variant="outline" size="md">
-              <Mail className="h-4 w-4" />
-              {t.btnInvite}
-            </Button>
-            <Button size="md">
-              <UserPlus className="h-4 w-4" />
-              {t.btnAdd}
-            </Button>
+        {/* 액션 */}
+        {canEdit && (
+          <div className="flex justify-end">
+            <ManagerAddModal btnLabel={t.btnAdd} t={t.addModal} roles={roleOptions} />
           </div>
-        </div>
+        )}
 
         {/* 권한 안내 */}
         <Card className="bg-trust-50/60 border-trust-200">
@@ -92,39 +78,33 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
           </CardContent>
         </Card>
 
-
         {/* 테이블 */}
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[120px]">{t.columns.approvalStatus}</TableHead>
                   <TableHead>{t.columns.department}</TableHead>
                   <TableHead className="w-[100px]">{t.columns.position}</TableHead>
                   <TableHead>{t.columns.name}</TableHead>
                   <TableHead>{t.columns.contact}</TableHead>
                   <TableHead className="w-[140px]">{t.columns.role}</TableHead>
                   <TableHead className="w-[110px]">{t.columns.joinedAt}</TableHead>
-                  <TableHead className="w-[150px]">{t.columns.actions}</TableHead>
+                  <TableHead className="w-[100px]">{t.columns.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {managers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-12 text-center text-muted">
+                    <TableCell colSpan={7} className="py-12 text-center text-muted">
                       {t.empty}
                     </TableCell>
                   </TableRow>
                 ) : (
                   managers.map((m) => {
                     const role = t.roles[m.role];
-                    const approvalLabel = t.approvals[m.approvalStatus];
                     return (
                       <TableRow key={m.admin_id}>
-                        <TableCell>
-                          <Badge tone={APPROVAL_TONE[m.approvalStatus]}>{approvalLabel}</Badge>
-                        </TableCell>
                         <TableCell className="font-medium">
                           {m.department || m.org_name || "—"}
                         </TableCell>
@@ -151,9 +131,7 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
                           </span>
                         </TableCell>
                         <TableCell>
-                          {m.approvalStatus === "suspended" ? (
-                            <Button size="sm" variant="outline">{t.actions.unsuspend}</Button>
-                          ) : (
+                          {canEdit && (
                             <div className="flex items-center gap-1">
                               <Button size="sm" variant="outline">{t.actions.changeRole}</Button>
                               <Button size="icon" variant="ghost" aria-label={t.actions.moreA11y}>
@@ -172,30 +150,5 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
         </Card>
       </main>
     </>
-  );
-}
-
-function SummaryStat({
-  label, value, unit, tone, badge,
-}: {
-  label: string; value: number; unit: string;
-  tone: "safe" | "warn" | "danger"; badge?: string;
-}) {
-  const map = {
-    safe:   "text-status-safe-fg",
-    warn:   "text-status-warn-fg",
-    danger: "text-status-danger",
-  } as const;
-  return (
-    <Card className="px-5 py-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted">{label}</p>
-        {badge && <Badge tone="warn">{badge}</Badge>}
-      </div>
-      <div className="mt-1.5 flex items-baseline gap-1">
-        <span className={`text-3xl font-extrabold ${map[tone]}`}>{value}</span>
-        <span className="text-sm font-semibold text-muted">{unit}</span>
-      </div>
-    </Card>
   );
 }
