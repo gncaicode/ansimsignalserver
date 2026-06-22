@@ -24,7 +24,7 @@ const dict: typeof ko = {
     managers: "運営者管理",
     alerts: "通知履歴",
     reports: "月次レポート",
-    settings: "システム設定",
+    settings: "設定",
     support: "テクニカルサポート 0120-000-000",
     comingSoon: "準備中",
     breadcrumb: "業務システム",

@@ -22,7 +22,7 @@ const dict = {
     managers: "운영자 관리",
     alerts: "알림 내역",
     reports: "월간 리포트",
-    settings: "시스템 설정",
+    settings: "설정",
     support: "기술지원 1588-0000",
     comingSoon: "준비중",
     breadcrumb: "업무 시스템",
