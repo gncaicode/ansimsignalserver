@@ -18,7 +18,6 @@ export default async function AppGroupLayout(
           dashboard: dict.nav.dashboard,
           users: dict.nav.users,
           managers: dict.nav.managers,
-          alerts: dict.nav.alerts,
           reports: dict.nav.reports,
           settings: dict.nav.settings,
           support: dict.nav.support,

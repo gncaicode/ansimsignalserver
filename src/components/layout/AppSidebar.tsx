@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Users,
   ShieldCheck,
-  Bell,
   FileBarChart2,
   Settings,
   LogOut,
@@ -18,7 +17,6 @@ type NavLabels = {
   dashboard: string;
   users: string;
   managers: string;
-  alerts: string;
   reports: string;
   settings: string;
   support: string;
@@ -46,7 +44,6 @@ export function AppSidebar({
     { href: `${base}/dashboard`, label: labels.dashboard, icon: LayoutDashboard },
     { href: `${base}/users`, label: labels.users, icon: Users },
     { href: `${base}/managers`, label: labels.managers, icon: ShieldCheck },
-    { href: `${base}/dashboard`, label: labels.alerts, icon: Bell, disabled: true },
     {
       href: `${base}/dashboard`,
       label: labels.reports,
