@@ -10,12 +10,7 @@ import {
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
 import { getAdmins, getOrgName, getAlertCount } from "@/lib/dashboard-data";
-import { DistrictManager } from "@/components/dashboard/DistrictManager";
-import { query } from "@/lib/db";
 import type { ManagerRole, ApprovalStatus } from "@/lib/types";
-import type { RowDataPacket } from "mysql2";
-
-interface DistrictRow extends RowDataPacket { dist_id: number; name: string; }
 
 const ROLE_TONE: Record<ManagerRole, "trust" | "neutral" | "outline" | "safe"> = {
   admin:      "trust",
@@ -41,15 +36,11 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
   const adminInfo = getAdminHeaderInfo(session, lang);
   const canEdit = session?.role === "superadmin" || session?.role === "admin";
 
-  const [managers, orgName, districtResult, alertCount] = await Promise.all([
+  const [managers, orgName, alertCount] = await Promise.all([
     getAdmins(orgId),
     getOrgName(orgId),
-    orgId
-      ? query<DistrictRow>("SELECT dist_id, name FROM districts WHERE org_id = ? ORDER BY name", [orgId])
-      : Promise.resolve({ rows: [] as DistrictRow[], rowCount: 0 }),
     getAlertCount(orgId),
   ]);
-  const districts = districtResult.rows;
 
   const approvedCount  = managers.filter((m) => m.approvalStatus === "approved").length;
   const pendingCount   = managers.filter((m) => m.approvalStatus === "pending").length;
@@ -101,8 +92,6 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
           </CardContent>
         </Card>
 
-        {/* 구역 관리 */}
-        <DistrictManager initial={districts} canEdit={canEdit} t={t.district} />
 
         {/* 테이블 */}
         <Card className="overflow-hidden">
