@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
-import { getAdmins, getOrgName } from "@/lib/dashboard-data";
+import { getAdmins, getOrgName, getAlertCount } from "@/lib/dashboard-data";
 import { DistrictManager } from "@/components/dashboard/DistrictManager";
 import { query } from "@/lib/db";
 import type { ManagerRole, ApprovalStatus } from "@/lib/types";
@@ -41,12 +41,13 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
   const adminInfo = getAdminHeaderInfo(session, lang);
   const canEdit = session?.role === "superadmin" || session?.role === "admin";
 
-  const [managers, orgName, districtResult] = await Promise.all([
+  const [managers, orgName, districtResult, alertCount] = await Promise.all([
     getAdmins(orgId),
     getOrgName(orgId),
     orgId
       ? query<DistrictRow>("SELECT dist_id, name FROM districts WHERE org_id = ? ORDER BY name", [orgId])
       : Promise.resolve({ rows: [] as DistrictRow[], rowCount: 0 }),
+    getAlertCount(orgId),
   ]);
   const districts = districtResult.rows;
 
@@ -61,6 +62,7 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
         description={t.desc}
         orgName={orgName}
         locale={lang}
+        alertCount={alertCount}
         labels={{
           breadcrumb: dict.nav.breadcrumb,
           searchPlaceholder: dict.appHeader.searchPlaceholder,

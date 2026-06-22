@@ -14,6 +14,7 @@ import {
   getDistrictBreakdown,
   getActivityLog,
   getOrgName,
+  getAlertCount,
 } from "@/lib/dashboard-data";
 
 export default async function DashboardPage(
@@ -26,13 +27,14 @@ export default async function DashboardPage(
   const t = dict.dashboard;
   const orgId = session?.organization_id ?? null;
 
-  const [stats, criticalUsers, districtBreakdown, activityLog, orgName] =
+  const [stats, criticalUsers, districtBreakdown, activityLog, orgName, alertCount] =
     await Promise.all([
       getDashboardStats(orgId),
       getCriticalUsers(orgId),
       getDistrictBreakdown(orgId),
       getActivityLog(orgId),
       getOrgName(orgId),
+      getAlertCount(orgId),
     ]);
 
   const today = formatLongDateTime(new Date(), lang);
@@ -48,6 +50,7 @@ export default async function DashboardPage(
         description={t.updated(today)}
         orgName={orgName}
         locale={lang}
+        alertCount={alertCount}
         labels={{
           breadcrumb: dict.nav.breadcrumb,
           searchPlaceholder: dict.appHeader.searchPlaceholder,

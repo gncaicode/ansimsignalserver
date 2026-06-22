@@ -202,6 +202,20 @@ export async function getOrgName(orgId: number | null): Promise<string> {
   return rows[0]?.name ?? "";
 }
 
+interface AlertCountRow extends RowDataPacket { cnt: number; }
+
+export async function getAlertCount(orgId: number | null): Promise<number> {
+  if (!orgId) return 0;
+  const { rows } = await query<AlertCountRow>(
+    `SELECT COUNT(*) AS cnt
+     FROM users u
+     JOIN districts d ON u.district_id = d.dist_id
+     WHERE d.org_id = ? AND u.status IN ('danger', 'warning') AND u.active_flag = 1`,
+    [orgId]
+  );
+  return rows[0]?.cnt ?? 0;
+}
+
 /* ───────── 대상자 목록 ───────── */
 export interface UserListItem {
   user_id: number;

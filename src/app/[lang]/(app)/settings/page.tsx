@@ -3,6 +3,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
 import { query } from "@/lib/db";
+import { getAlertCount } from "@/lib/dashboard-data";
 import { SettingsForm } from "@/components/settings/SettingsForm";
 import type { RowDataPacket } from "mysql2";
 
@@ -58,6 +59,7 @@ export default async function SettingsPage(props: PageProps<"/[lang]/settings">)
   }
 
   const canEditOrg = ["superadmin", "admin"].includes(session.role);
+  const alertCount = await getAlertCount(session.organization_id);
 
   return (
     <>
@@ -66,6 +68,7 @@ export default async function SettingsPage(props: PageProps<"/[lang]/settings">)
         description={t.desc}
         orgName={org?.name ?? ""}
         locale={lang}
+        alertCount={alertCount}
         labels={{
           breadcrumb: dict.nav.breadcrumb,
           searchPlaceholder: dict.appHeader.searchPlaceholder,

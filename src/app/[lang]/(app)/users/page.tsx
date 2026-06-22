@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getDictionary, hasLocale, type Locale } from "@/lib/i18n";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
-import { getUsers, getOrgName, getDistrictOptions, getAdminOptions } from "@/lib/dashboard-data";
+import { getUsers, getOrgName, getDistrictOptions, getAdminOptions, getAlertCount } from "@/lib/dashboard-data";
 import { UserAddModal } from "@/components/dashboard/UserAddModal";
 import { UsersTable } from "@/components/dashboard/UsersTable";
 import { BulkImportModal } from "@/components/dashboard/BulkImportModal";
@@ -27,11 +27,12 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
 
   const adminInfo = getAdminHeaderInfo(session, lang);
 
-  const [{ users, total }, orgName, districtOptions, adminOptions] = await Promise.all([
+  const [{ users, total }, orgName, districtOptions, adminOptions, alertCount] = await Promise.all([
     getUsers(orgId, statusFilter, page, PAGE_SIZE),
     getOrgName(orgId),
     getDistrictOptions(orgId),
     getAdminOptions(orgId),
+    getAlertCount(orgId),
   ]);
 
   const dangerCount = users.filter((u) => u.status === "danger").length;
@@ -46,6 +47,7 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
         description={t.desc(users.length, total)}
         orgName={orgName}
         locale={lang}
+        alertCount={alertCount}
         labels={{
           breadcrumb: dict.nav.breadcrumb,
           searchPlaceholder: dict.appHeader.searchPlaceholder,

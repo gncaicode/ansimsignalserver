@@ -8,6 +8,7 @@ type AppHeaderProps = {
   description?: string;
   orgName: string;
   locale: "ko" | "ja";
+  alertCount?: number;
   labels: {
     breadcrumb: string;
     searchPlaceholder: string;
@@ -23,6 +24,7 @@ export function AppHeader({
   description,
   orgName,
   locale,
+  alertCount = 0,
   labels,
 }: AppHeaderProps) {
   return (
@@ -51,9 +53,11 @@ export function AppHeader({
             className="relative"
           >
             <Bell className="h-[18px] w-[18px]" />
-            <span className="absolute -right-1 -top-1 h-4 min-w-4 rounded-full bg-status-danger px-1 text-[10px] font-bold leading-4 text-white text-center">
-              2
-            </span>
+            {alertCount > 0 && (
+              <span className="absolute -right-1 -top-1 h-4 min-w-4 rounded-full bg-status-danger px-1 text-[10px] font-bold leading-4 text-white text-center">
+                {alertCount > 99 ? "99+" : alertCount}
+              </span>
+            )}
           </Button>
           <div className="flex items-center gap-2.5 pl-2 ml-1 border-l border-border">
             <div className="h-9 w-9 rounded-full bg-trust-700 text-white flex items-center justify-center text-sm font-bold">
