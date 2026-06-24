@@ -18,23 +18,27 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const lastCheckin    = new Date(user.last_checkin_at);
+    // mysql2는 타임존 없이 DATETIME을 반환하므로 KST(+09:00)로 명시 파싱
+    const raw = user.last_checkin_at;
+    const lastCheckinIso = (raw.includes('T') ? raw : raw.replace(' ', 'T')) + '+09:00';
+    const lastCheckin = new Date(lastCheckinIso);
     const deadline       = new Date(lastCheckin.getTime() + user.interval_hours * 3_600_000);
     const now            = new Date();
-    const remainingMs    = deadline.getTime() - now.getTime();
-    const remainingHours = Math.floor(remainingMs / 3_600_000);
+    const remainingMs          = deadline.getTime() - now.getTime();
+    const remainingHours       = remainingMs / 3_600_000;
+    const warningThresholdHours = user.interval_hours / 3;
 
     let status: 'safe' | 'warning' | 'overdue';
-    if (remainingMs < 0)         status = 'overdue';
-    else if (remainingHours < 8) status = 'warning';
-    else                         status = 'safe';
+    if (remainingMs < 0)                        status = 'overdue';
+    else if (remainingHours < warningThresholdHours) status = 'warning';
+    else                                        status = 'safe';
 
     return NextResponse.json({
       status,
       user_name:       user.name,
-      last_checkin_at: user.last_checkin_at,
+      last_checkin_at: lastCheckinIso,
       deadline_at:     deadline.toISOString(),
-      remaining_hours: remainingHours,
+      remaining_hours: Math.max(0, remainingHours),
       alert_sent:      !!user.alert_sent_at,
       interval_hours:  user.interval_hours,
       care_worker:     null,

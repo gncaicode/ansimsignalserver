@@ -19,31 +19,9 @@ export default async function SettingsPage(props: PageProps<"/[lang]/settings">)
   const adminInfo = getAdminHeaderInfo(session, lang);
 
   if (!session) notFound();
+  if (!["superadmin", "admin"].includes(session.role)) notFound();
 
-  // superadmin만 접근 가능
-  if (session.role !== "superadmin") {
-    return (
-      <>
-        <AppHeader
-          title={t.title}
-          orgName=""
-          locale={lang}
-          labels={{
-            breadcrumb: dict.nav.breadcrumb,
-            searchPlaceholder: dict.appHeader.searchPlaceholder,
-            role: adminInfo.role,
-            notify: dict.appHeader.notify,
-            user: adminInfo.user,
-            userInitial: adminInfo.userInitial,
-          }}
-        />
-        <main className="flex-1 flex items-center justify-center">
-          <p className="text-muted">{t.superadminOnly}</p>
-        </main>
-      </>
-    );
-  }
-
+  const isSuperadmin = session.role === "superadmin";
   const orgId = session.organization_id;
 
   const [orgRows, districtResult, admins, alertCount] = await Promise.all([
@@ -81,6 +59,7 @@ export default async function SettingsPage(props: PageProps<"/[lang]/settings">)
         orgName={orgName}
         districts={districts}
         admins={admins}
+        isSuperadmin={isSuperadmin}
         t={t}
       />
     </>

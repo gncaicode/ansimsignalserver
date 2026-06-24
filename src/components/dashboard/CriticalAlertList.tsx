@@ -1,12 +1,13 @@
-import { MapPin, Phone, MessageSquare, FileText, AlertTriangle } from "lucide-react";
+import { MapPin, Phone, MessageSquare, AlertTriangle } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/brand/StatusBadge";
+import { ActionRecordButton } from "@/components/dashboard/ActionRecordButton";
+import type { ActionModalT } from "@/components/dashboard/ActionRecordButton";
+import { ElapsedTimer } from "@/components/dashboard/ElapsedTimer";
 import type { Subject } from "@/lib/types";
 import type { Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { formatElapsed } from "@/lib/i18n/format";
 
 export type CriticalLabels = {
   header: string;
@@ -24,6 +25,7 @@ export type CriticalLabels = {
   yearsSuffix: string;
   genderM: string;
   genderF: string;
+  actionModal: ActionModalT;
 };
 
 export function CriticalAlertList({
@@ -74,6 +76,9 @@ function AlertRow({
   labels: CriticalLabels;
 }) {
   const isDanger = s.status === "danger";
+  const btnBase =
+    "inline-flex items-center justify-center gap-1.5 rounded-lg text-sm font-semibold h-8 px-3 transition-colors whitespace-nowrap focus-visible:outline-none";
+
   return (
     <li
       className={cn(
@@ -121,7 +126,7 @@ function AlertRow({
               isDanger ? "text-status-danger" : "text-status-warn-fg",
             )}
           >
-            {formatElapsed(s.hoursSinceLastCheckIn, locale)}
+            <ElapsedTimer lastCheckIn={s.lastCheckIn} locale={locale} />
           </p>
         </div>
 
@@ -129,9 +134,8 @@ function AlertRow({
           <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle">
             {labels.colContact}
           </p>
-          <p className="mt-0.5 text-sm">
-            <span className="font-semibold text-foreground">{s.emergencyContactName}</span>
-            <span className="ml-2 text-muted">{s.emergencyContactPhone}</span>
+          <p className="mt-0.5 text-sm font-semibold text-foreground">
+            {s.emergencyContactPhone || "—"}
           </p>
         </div>
 
@@ -144,22 +148,42 @@ function AlertRow({
       </div>
 
       <div className="flex items-center gap-2 lg:ml-auto">
-        <Button
-          size="sm"
-          variant={isDanger ? "danger" : "primary"}
-          aria-label={labels.btnCallA11y(s.emergencyContactName)}
+        {/* 즉시 전화 */}
+        <a
+          href={`tel:${s.emergencyContactPhone}`}
+          aria-label={labels.btnCallA11y(s.emergencyContactPhone)}
+          className={cn(
+            btnBase,
+            isDanger
+              ? "bg-status-danger text-white hover:bg-red-700"
+              : "bg-trust-700 text-white hover:bg-trust-800",
+          )}
         >
           <Phone className="h-4 w-4" />
           {labels.btnCall}
-        </Button>
-        <Button size="sm" variant="outline" aria-label={labels.btnSmsA11y}>
+        </a>
+
+        {/* 문자 */}
+        <a
+          href={`sms:${s.emergencyContactPhone}`}
+          aria-label={labels.btnSmsA11y}
+          className={cn(
+            btnBase,
+            "border border-border-strong bg-white text-foreground hover:bg-surface-muted",
+          )}
+        >
           <MessageSquare className="h-4 w-4" />
           {labels.btnSms}
-        </Button>
-        <Button size="sm" variant="ghost" aria-label={labels.btnRecordA11y}>
-          <FileText className="h-4 w-4" />
-          {labels.btnRecord}
-        </Button>
+        </a>
+
+        {/* 조치 기록 */}
+        <ActionRecordButton
+          userId={s.id}
+          userName={s.name}
+          btnLabel={labels.btnRecord}
+          btnA11y={labels.btnRecordA11y}
+          t={labels.actionModal}
+        />
       </div>
     </li>
   );

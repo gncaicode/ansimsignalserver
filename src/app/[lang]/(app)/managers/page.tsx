@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { ShieldCheck, MoreHorizontal } from "lucide-react";
+import { ShieldCheck, UserPlus } from "lucide-react";
+import Link from "next/link";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import {
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
 import { getAdmins, getOrgName, getAlertCount } from "@/lib/dashboard-data";
-import { ManagerAddModal } from "@/components/dashboard/ManagerAddModal";
+import { ManagerActionsCell } from "@/components/dashboard/ManagerActionsCell";
 import type { ManagerRole } from "@/lib/types";
 
 const ROLE_TONE: Record<ManagerRole, "trust" | "neutral" | "outline" | "safe"> = {
@@ -64,7 +65,12 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
         {/* 액션 */}
         {canEdit && (
           <div className="flex justify-end">
-            <ManagerAddModal btnLabel={t.btnAdd} t={t.addModal} roles={roleOptions} />
+            <Link href={`/${lang}/managers/new`}>
+              <Button size="md">
+                <UserPlus className="h-4 w-4" />
+                {t.btnAdd}
+              </Button>
+            </Link>
           </div>
         )}
 
@@ -132,12 +138,21 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
                         </TableCell>
                         <TableCell>
                           {canEdit && (
-                            <div className="flex items-center gap-1">
-                              <Button size="sm" variant="outline">{t.actions.changeRole}</Button>
-                              <Button size="icon" variant="ghost" aria-label={t.actions.moreA11y}>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            <ManagerActionsCell
+                              adminId={m.admin_id}
+                              name={m.name}
+                              phone={m.phone ?? ""}
+                              position={m.position ?? ""}
+                              department={m.department ?? ""}
+                              currentDbRole={m.dbRole}
+                              roles={roleOptions}
+                              t={{
+                                actions: t.actions,
+                                changeRoleModal: t.changeRoleModal,
+                                editModal: t.editModal,
+                                deleteConfirm: t.deleteConfirm,
+                              }}
+                            />
                           )}
                         </TableCell>
                       </TableRow>

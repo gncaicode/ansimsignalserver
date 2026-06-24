@@ -37,7 +37,7 @@ const toneStyles: Record<
 export type SummaryLabels = {
   totalLabel: string;
   totalUnit: string;
-  totalSub: (h: number, a: number) => string;
+  totalSub: (districts: { name: string; total: number }[]) => string;
   dangerLabel: string;
   dangerUnit: string;
   dangerSub: string;
@@ -54,16 +54,14 @@ export function SummaryCards({
   danger,
   warn,
   safe,
-  primaryDistrictTotal,
-  secondaryDistrictTotal,
+  districtBreakdown,
   labels,
 }: {
   total: number;
   danger: number;
   warn: number;
   safe: number;
-  primaryDistrictTotal: number;
-  secondaryDistrictTotal: number;
+  districtBreakdown: { name: string; total: number }[];
   labels: SummaryLabels;
 }) {
   const items = [
@@ -73,7 +71,7 @@ export function SummaryCards({
       unit: labels.totalUnit,
       tone: "neutral" as Tone,
       icon: UsersRound,
-      sub: labels.totalSub(primaryDistrictTotal, secondaryDistrictTotal),
+      sub: labels.totalSub(districtBreakdown),
     },
     {
       label: labels.dangerLabel,

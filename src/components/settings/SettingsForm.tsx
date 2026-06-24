@@ -19,11 +19,13 @@ export function SettingsForm({
   orgName,
   districts: initialDistricts,
   admins,
+  isSuperadmin,
   t,
 }: {
   orgName: string;
   districts: District[];
   admins: AdminOption[];
+  isSuperadmin: boolean;
   t: SettingsT;
 }) {
   // 기관 정보
@@ -172,8 +174,8 @@ export function SettingsForm({
         </CardContent>
       </Card>
 
-      {/* 최고관리자 변경 */}
-      <Card className="border-status-warn-border">
+      {/* 최고관리자 변경 — superadmin 전용 */}
+      {isSuperadmin && <Card className="border-status-warn-border">
         <CardHeader>
           <CardTitle className="text-status-warn-fg">{t.superadmin.title}</CardTitle>
           <p className="text-xs text-muted">{t.superadmin.desc}</p>
@@ -205,7 +207,7 @@ export function SettingsForm({
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card>}
     </main>
   );
 }

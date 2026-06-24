@@ -5,6 +5,7 @@ import { CriticalAlertList } from "@/components/dashboard/CriticalAlertList";
 import { ActivityLog } from "@/components/dashboard/ActivityLog";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DashboardRefresher } from "@/components/dashboard/DashboardRefresher";
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { formatLongDateTime } from "@/lib/i18n/format";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
@@ -40,11 +41,9 @@ export default async function DashboardPage(
   const today = formatLongDateTime(new Date(), lang);
   const adminInfo = getAdminHeaderInfo(session, lang);
 
-  const primaryDistrictTotal = districtBreakdown[0]?.total ?? 0;
-  const secondaryDistrictTotal = districtBreakdown[1]?.total ?? 0;
-
   return (
     <>
+      <DashboardRefresher />
       <AppHeader
         title={t.title}
         description={t.updated(today)}
@@ -66,8 +65,7 @@ export default async function DashboardPage(
           danger={stats.danger}
           warn={stats.warn}
           safe={stats.safe}
-          primaryDistrictTotal={primaryDistrictTotal}
-          secondaryDistrictTotal={secondaryDistrictTotal}
+          districtBreakdown={districtBreakdown}
           labels={t.summary}
         />
 

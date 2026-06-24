@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   FileBarChart2,
   Settings,
+  UserCircle,
   LogOut,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
@@ -19,6 +20,7 @@ type NavLabels = {
   managers: string;
   reports: string;
   settings: string;
+  profile: string;
   support: string;
   comingSoon: string;
   logout: string;
@@ -27,9 +29,11 @@ type NavLabels = {
 export function AppSidebar({
   locale,
   labels,
+  role,
 }: {
   locale: "ko" | "ja";
   labels: NavLabels;
+  role?: string;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -40,10 +44,12 @@ export function AppSidebar({
     router.push(`/${locale}/login`);
   }
 
+  const canManage = role === "superadmin" || role === "admin";
+
   const NAV = [
     { href: `${base}/dashboard`, label: labels.dashboard, icon: LayoutDashboard },
     { href: `${base}/users`, label: labels.users, icon: Users },
-    { href: `${base}/managers`, label: labels.managers, icon: ShieldCheck },
+    ...(canManage ? [{ href: `${base}/managers`, label: labels.managers, icon: ShieldCheck }] : []),
     {
       href: `${base}/dashboard`,
       label: labels.reports,
@@ -93,12 +99,25 @@ export function AppSidebar({
       </nav>
 
       <div className="border-t border-border p-3 space-y-1">
-        <Link
+        {canManage && <Link
           href={`${base}/settings`}
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground hover:bg-surface-muted"
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+            pathname === `${base}/settings` ? "bg-trust-50 text-trust-700" : "text-foreground hover:bg-surface-muted",
+          )}
         >
           <Settings className="h-[18px] w-[18px]" />
           {labels.settings}
+        </Link>}
+        <Link
+          href={`${base}/profile`}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+            pathname === `${base}/profile` ? "bg-trust-50 text-trust-700" : "text-foreground hover:bg-surface-muted",
+          )}
+        >
+          <UserCircle className="h-[18px] w-[18px]" />
+          {labels.profile}
         </Link>
         <button
           onClick={logout}

@@ -34,9 +34,7 @@ export async function PATCH(req: NextRequest) {
 
     // 업데이트
     await execute(
-      `UPDATE admins
-       SET name = ?, phone = ?, position = ?, department = ?, updated_at = NOW()
-       WHERE admin_id = ?`,
+      `UPDATE admins SET name = ?, phone = ?, position = ?, department = ? WHERE admin_id = ?`,
       [name.trim(), phone ?? "", position ?? "", department ?? "", session.admin_id]
     );
 

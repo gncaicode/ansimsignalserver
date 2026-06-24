@@ -34,12 +34,12 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const loginId = email.trim().toLowerCase();
+    const emailNorm = email.trim().toLowerCase();
 
     await execute(
-      `INSERT INTO admins (login_id, password_hash, name, organization_id, phone, position, department, email, role, active_flag, joined_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, CURDATE())`,
-      [loginId, passwordHash, name.trim(), session.organization_id, phone ?? "", position ?? "", department ?? "", loginId, role]
+      `INSERT INTO admins (password_hash, name, organization_id, phone, position, department, email, role, active_flag, joined_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, CURDATE())`,
+      [passwordHash, name.trim(), session.organization_id, phone ?? "", position ?? "", department ?? "", emailNorm, role]
     );
 
     return NextResponse.json({ success: true }, { status: 201 });

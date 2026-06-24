@@ -64,7 +64,7 @@ export async function PATCH(req: NextRequest) {
     // 새 비밀번호 해시 및 업데이트
     const newHash = await bcrypt.hash(newPassword, 10);
     await execute(
-      "UPDATE admins SET password_hash = ?, updated_at = NOW() WHERE admin_id = ?",
+      "UPDATE admins SET password_hash = ? WHERE admin_id = ?",
       [newHash, session.admin_id]
     );
 

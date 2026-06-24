@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, execute } from '@/lib/db';
 import { sendAlertEmail } from '@/lib/mailer';
+import { nowKst } from '@/lib/utils';
 import { RowDataPacket } from 'mysql2';
 
 interface OverdueUser extends RowDataPacket {
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
        FROM users u
        LEFT JOIN admins a ON u.admin_id = a.admin_id
        WHERE u.last_checkin_at IS NOT NULL
-         AND DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) < NOW()
+         AND DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) < NOW() + INTERVAL 9 HOUR
          AND u.alert_sent_at IS NULL`
     );
 
@@ -44,8 +45,8 @@ export async function GET(req: NextRequest) {
       }
 
       await execute(
-        'UPDATE users SET alert_sent_at = NOW(3), status = ? WHERE user_id = ?',
-        [hoursOverdue > 0 ? 'danger' : 'warning', user.user_id]
+        'UPDATE users SET alert_sent_at = ?, status = ? WHERE user_id = ?',
+        [nowKst(), hoursOverdue > 0 ? 'danger' : 'warning', user.user_id]
       );
     }
 

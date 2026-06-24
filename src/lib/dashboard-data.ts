@@ -2,11 +2,31 @@ import { query } from "./db";
 import type { RowDataPacket } from "mysql2";
 import type { Subject, ActivityLogEntry, SignalStatus, ManagerRole, ApprovalStatus } from "./types";
 
-// DB status는 'warning', 프론트는 'warn'
-function toSignalStatus(s: string): SignalStatus {
-  if (s === "warning") return "warn";
-  return s as SignalStatus;
+// MySQL DATETIME(KST) 문자열 → ISO 8601 KST 문자열 ("+09:00" 명시)
+// mysql2는 타임존 없이 반환하므로, 이후 new Date()가 로컬 시간으로 파싱하는 버그 방지
+function toIsoKst(s: string): string {
+  return (s.includes('T') ? s : s.replace(' ', 'T')) + '+09:00';
 }
+
+// last_checkin_at + interval_hours 기반 실시간 상태 계산 (Flutter 앱과 동일 로직)
+function calcSignalStatus(lastCheckinAt: string | null, intervalHours: number): SignalStatus {
+  if (!lastCheckinAt) return "safe";
+  const remainingMs = new Date(toIsoKst(lastCheckinAt)).getTime() + intervalHours * 3_600_000 - Date.now();
+  if (remainingMs < 0) return "danger";
+  if (remainingMs < (intervalHours / 3) * 3_600_000) return "warn";
+  return "safe";
+}
+
+// KST 현재 시각 SQL 표현 — MySQL 서버가 UTC이므로 +9시간 보정
+const NOW_KST = '(NOW() + INTERVAL 9 HOUR)';
+
+// 동적 위급·주의 판단 SQL 조건 (DB status 컬럼 미사용)
+const DYNAMIC_CRITICAL_COND = `
+  u.last_checkin_at IS NOT NULL AND (
+    ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
+    OR TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0
+  )
+`;
 
 /* ───────── 통계 ───────── */
 interface StatsRow extends RowDataPacket {
@@ -19,10 +39,16 @@ interface StatsRow extends RowDataPacket {
 export async function getDashboardStats(orgId: number | null) {
   const { rows } = await query<StatsRow>(
     `SELECT
-       COUNT(*)                        AS total,
-       SUM(u.status = 'danger')        AS danger,
-       SUM(u.status = 'warning')       AS warn,
-       SUM(u.status = 'safe')          AS safe
+       COUNT(*) AS total,
+       SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
+       SUM(CASE WHEN u.last_checkin_at IS NOT NULL
+                     AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
+                     AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0
+                THEN 1 ELSE 0 END) AS warn,
+       SUM(CASE WHEN u.last_checkin_at IS NULL
+                     OR (${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
+                         AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 3.0)
+                THEN 1 ELSE 0 END) AS safe
      FROM users u
      ${orgId ? "LEFT JOIN districts d ON u.district_id = d.dist_id WHERE u.active_flag = 1 AND d.org_id = ?" : "WHERE u.active_flag = 1"}`,
     orgId ? [orgId] : []
@@ -62,15 +88,17 @@ export async function getCriticalUsers(orgId: number | null): Promise<Subject[]>
      LEFT JOIN districts d ON u.district_id = d.dist_id
      LEFT JOIN admins    a ON u.admin_id    = a.admin_id
      WHERE u.active_flag = 1
-       AND u.status IN ('danger','warning')
+       AND (${DYNAMIC_CRITICAL_COND})
        ${orgId ? "AND d.org_id = ?" : ""}
-     ORDER BY FIELD(u.status,'danger','warning'), u.alert_sent_at DESC
+     ORDER BY
+       CASE WHEN ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 0 ELSE 1 END,
+       u.last_checkin_at ASC
      LIMIT 20`,
     orgId ? [orgId] : []
   );
 
   return rows.map((u) => {
-    const lastCheckIn = u.last_checkin_at ?? new Date().toISOString();
+    const lastCheckIn = u.last_checkin_at ? toIsoKst(u.last_checkin_at) : new Date().toISOString();
     const diffMs = Date.now() - new Date(lastCheckIn).getTime();
     const hoursSince = Math.round(diffMs / 3_600_000);
 
@@ -86,7 +114,7 @@ export async function getCriticalUsers(orgId: number | null): Promise<Subject[]>
       caseworker:            u.admin_name ?? "",
       lastCheckIn,
       hoursSinceLastCheckIn: hoursSince,
-      status:                toSignalStatus(u.status),
+      status:                calcSignalStatus(u.last_checkin_at, u.interval_hours),
     };
   });
 }
@@ -103,9 +131,12 @@ export async function getDistrictBreakdown(orgId: number | null) {
   const { rows } = await query<DistrictRow>(
     `SELECT
        d.name,
-       COUNT(*)                   AS total,
-       SUM(u.status = 'danger')   AS danger,
-       SUM(u.status = 'warning')  AS warn
+       COUNT(*) AS total,
+       SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
+       SUM(CASE WHEN u.last_checkin_at IS NOT NULL
+                     AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
+                     AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0
+                THEN 1 ELSE 0 END) AS warn
      FROM users u
      JOIN districts d ON u.district_id = d.dist_id
      WHERE u.active_flag = 1
@@ -132,14 +163,14 @@ interface LogRow extends RowDataPacket {
   district_name: string | null;
   last_checkin_at: string | null;
   alert_sent_at: string | null;
-  status: string;
+  interval_hours: number;
   admin_name: string | null;
 }
 
 export async function getActivityLog(orgId: number | null): Promise<ActivityLogEntry[]> {
   const { rows } = await query<LogRow>(
     `SELECT
-       u.user_id, u.name, u.last_checkin_at, u.alert_sent_at, u.status,
+       u.user_id, u.name, u.last_checkin_at, u.alert_sent_at, u.interval_hours,
        d.name AS district_name,
        a.name AS admin_name
      FROM users u
@@ -159,7 +190,7 @@ export async function getActivityLog(orgId: number | null): Promise<ActivityLogE
   const entries: ActivityLogEntry[] = [];
 
   for (const u of rows) {
-    const status = toSignalStatus(u.status);
+    const status = calcSignalStatus(u.last_checkin_at, u.interval_hours);
     const district = u.district_name ?? "";
 
     if (u.alert_sent_at) {
@@ -169,7 +200,7 @@ export async function getActivityLog(orgId: number | null): Promise<ActivityLogE
         subjectName: u.name,
         district,
         message:     `미확인 — 위급 알림 자동 발송${u.admin_name ? ` (담당: ${u.admin_name})` : ""}`,
-        occurredAt:  u.alert_sent_at,
+        occurredAt:  toIsoKst(u.alert_sent_at),
         severity:    "danger",
       });
     } else if (u.last_checkin_at) {
@@ -179,7 +210,7 @@ export async function getActivityLog(orgId: number | null): Promise<ActivityLogE
         subjectName: u.name,
         district,
         message:     "안부 체크인 완료",
-        occurredAt:  u.last_checkin_at,
+        occurredAt:  toIsoKst(u.last_checkin_at),
         severity:    status === "safe" ? "safe" : status,
       });
     }
@@ -210,7 +241,8 @@ export async function getAlertCount(orgId: number | null): Promise<number> {
     `SELECT COUNT(*) AS cnt
      FROM users u
      JOIN districts d ON u.district_id = d.dist_id
-     WHERE d.org_id = ? AND u.status IN ('danger', 'warning') AND u.active_flag = 1`,
+     WHERE d.org_id = ? AND u.active_flag = 1
+       AND (${DYNAMIC_CRITICAL_COND})`,
     [orgId]
   );
   return rows[0]?.cnt ?? 0;
@@ -255,7 +287,11 @@ export async function getUsers(
 ): Promise<{ users: UserListItem[]; total: number }> {
   const offset = (page - 1) * pageSize;
   const statusCond = statusFilter && statusFilter !== "all"
-    ? `AND u.status = ${statusFilter === "warn" ? "'warning'" : `'${statusFilter}'`}`
+    ? statusFilter === "danger"
+      ? `AND u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)`
+      : statusFilter === "warn"
+        ? `AND u.last_checkin_at IS NOT NULL AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0`
+        : `AND (u.last_checkin_at IS NULL OR (${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 3.0))`
     : "";
   const orgCond = orgId ? "AND d.org_id = ?" : "";
   const params: (string | number)[] = [];
@@ -282,7 +318,11 @@ export async function getUsers(
      LEFT JOIN admins       a  ON u.admin_id    = a.admin_id
      LEFT JOIN invite_codes ic ON ic.user_id    = u.user_id AND ic.used = 0
      WHERE u.active_flag = 1 ${statusCond} ${orgCond}
-     ORDER BY FIELD(u.status,'danger','warning','safe'), u.last_checkin_at ASC
+     ORDER BY
+       CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 0
+            WHEN u.last_checkin_at IS NOT NULL AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0 THEN 1
+            ELSE 2 END,
+       u.last_checkin_at ASC
      LIMIT ? OFFSET ?`,
     [...params, pageSize, offset],
   );
@@ -291,7 +331,7 @@ export async function getUsers(
     total,
     users: rows.map((r) => ({
       ...r,
-      status: toSignalStatus(r.status),
+      status: calcSignalStatus(r.last_checkin_at, r.interval_hours),
     })),
   };
 }
@@ -369,8 +409,9 @@ export async function getAdmins(orgId: number | null): Promise<AdminListItem[]> 
      FROM admins a
      LEFT JOIN organizations o ON a.organization_id = o.org_id
      WHERE a.withdraw_flag = 0
+       AND a.role != 'superadmin'
        ${orgId ? "AND a.organization_id = ?" : ""}
-     ORDER BY FIELD(a.role,'superadmin','admin','social_worker','viewer'), a.joined_at DESC`,
+     ORDER BY FIELD(a.role,'admin','social_worker','viewer'), a.joined_at DESC`,
     orgId ? [orgId] : [],
   );
 

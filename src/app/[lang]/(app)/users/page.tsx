@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
-import { Download, Search } from "lucide-react";
+import { Download, Search, UserPlus } from "lucide-react";
+import Link from "next/link";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getDictionary, hasLocale, type Locale } from "@/lib/i18n";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
 import { getUsers, getOrgName, getDistrictOptions, getAdminOptions, getAlertCount } from "@/lib/dashboard-data";
-import { UserAddModal } from "@/components/dashboard/UserAddModal";
 import { UsersTable } from "@/components/dashboard/UsersTable";
 import { BulkImportModal } from "@/components/dashboard/BulkImportModal";
 
@@ -83,7 +83,12 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
               </Button>
             </a>
             <BulkImportModal btnLabel={t.btnImport} t={t.importModal} />
-            <UserAddModal districts={districtOptions} admins={adminOptions} btnLabel={t.btnAdd} t={t.addModal} />
+            <Link href={`/${lang}/users/new`}>
+              <Button size="md">
+                <UserPlus className="h-4 w-4" />
+                {t.btnAdd}
+              </Button>
+            </Link>
           </div>
         </div>
 
