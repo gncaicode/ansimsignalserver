@@ -20,6 +20,7 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
   const searchParams = await (props as any).searchParams;
   const statusFilter = searchParams?.status ?? "all";
   const page = Math.max(1, Number(searchParams?.page ?? 1));
+  const q = (searchParams?.q as string | undefined) ?? "";
 
   const [dict, session] = await Promise.all([getDictionary(lang), getSession()]);
   const t = dict.users;
@@ -28,7 +29,7 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
   const adminInfo = getAdminHeaderInfo(session, lang);
 
   const [{ users, total }, orgName, districtOptions, adminOptions, alertCount] = await Promise.all([
-    getUsers(orgId, statusFilter, page, PAGE_SIZE),
+    getUsers(orgId, statusFilter, page, PAGE_SIZE, q || undefined),
     getOrgName(orgId),
     getDistrictOptions(orgId),
     getAdminOptions(orgId),
@@ -60,19 +61,22 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
       <main className="flex-1 px-6 py-6 space-y-5 max-w-[1400px] mx-auto w-full">
         {/* 액션바 */}
         <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-          <div className="relative flex-1 max-w-xl">
+          <form method="GET" action={`/${lang}/users`} className="relative flex-1 max-w-xl">
+            <input type="hidden" name="status" value={statusFilter} />
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
             <input
+              name="q"
+              defaultValue={q}
               placeholder={t.searchPlaceholder}
               className="h-10 w-full rounded-lg border border-border bg-white pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500"
             />
-          </div>
+          </form>
 
           <div className="flex flex-wrap items-center gap-2">
-            <FilterPill href={`/${lang}/users?status=all`}   label={t.filterAll}    count={total}       active={statusFilter === "all"} />
-            <FilterPill href={`/${lang}/users?status=danger`} label={t.filterDanger} count={dangerCount} active={statusFilter === "danger"} tone="danger" />
-            <FilterPill href={`/${lang}/users?status=warn`}   label={t.filterWarn}   count={warnCount}   active={statusFilter === "warn"}   tone="warn" />
-            <FilterPill href={`/${lang}/users?status=safe`}   label={t.filterSafe}   count={safeCount}   active={statusFilter === "safe"}   tone="safe" />
+            <FilterPill href={`/${lang}/users?status=all${q ? `&q=${encodeURIComponent(q)}` : ""}`}    label={t.filterAll}    count={total}       active={statusFilter === "all"} />
+            <FilterPill href={`/${lang}/users?status=danger${q ? `&q=${encodeURIComponent(q)}` : ""}`} label={t.filterDanger} count={dangerCount} active={statusFilter === "danger"} tone="danger" />
+            <FilterPill href={`/${lang}/users?status=warn${q ? `&q=${encodeURIComponent(q)}` : ""}`}   label={t.filterWarn}   count={warnCount}   active={statusFilter === "warn"}   tone="warn" />
+            <FilterPill href={`/${lang}/users?status=safe${q ? `&q=${encodeURIComponent(q)}` : ""}`}   label={t.filterSafe}   count={safeCount}   active={statusFilter === "safe"}   tone="safe" />
           </div>
 
           <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
@@ -118,6 +122,7 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
             total={total}
             lang={lang}
             statusFilter={statusFilter}
+            q={q}
             t={t}
           />
         </Card>
@@ -127,7 +132,7 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
 }
 
 function Pagination({
-  page, totalPages, visible, total, lang, statusFilter, t,
+  page, totalPages, visible, total, lang, statusFilter, q, t,
 }: {
   page: number;
   totalPages: number;
@@ -135,10 +140,11 @@ function Pagination({
   total: number;
   lang: string;
   statusFilter: string;
+  q: string;
   t: Awaited<ReturnType<typeof getDictionary>>["users"];
 }) {
   const summary = t.pagination.summary(visible, total);
-  const base = `/${lang}/users?status=${statusFilter}&page=`;
+  const base = `/${lang}/users?status=${statusFilter}${q ? `&q=${encodeURIComponent(q)}` : ""}&page=`;
 
   const pages: (number | "…")[] = [];
   if (totalPages <= 5) {

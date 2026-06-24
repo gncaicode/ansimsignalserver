@@ -284,6 +284,7 @@ export async function getUsers(
   statusFilter?: string,
   page = 1,
   pageSize = 20,
+  q?: string,
 ): Promise<{ users: UserListItem[]; total: number }> {
   const offset = (page - 1) * pageSize;
   const statusCond = statusFilter && statusFilter !== "all"
@@ -294,14 +295,19 @@ export async function getUsers(
         : `AND (u.last_checkin_at IS NULL OR (${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 3.0))`
     : "";
   const orgCond = orgId ? "AND d.org_id = ?" : "";
+  const searchCond = q ? "AND (u.name LIKE ? OR u.address LIKE ? OR a.name LIKE ?)" : "";
+  const likeVal = q ? `%${q}%` : null;
+
   const params: (string | number)[] = [];
   if (orgId) params.push(orgId);
+  if (likeVal) params.push(likeVal, likeVal, likeVal);
 
   const { rows: countRows } = await query<RowDataPacket & { total: number }>(
     `SELECT COUNT(*) AS total
      FROM users u
      LEFT JOIN districts d ON u.district_id = d.dist_id
-     WHERE u.active_flag = 1 ${statusCond} ${orgCond}`,
+     LEFT JOIN admins    a ON u.admin_id    = a.admin_id
+     WHERE u.active_flag = 1 ${statusCond} ${orgCond} ${searchCond}`,
     params,
   );
   const total = Number(countRows[0]?.total ?? 0);
@@ -317,7 +323,7 @@ export async function getUsers(
      LEFT JOIN districts    d  ON u.district_id = d.dist_id
      LEFT JOIN admins       a  ON u.admin_id    = a.admin_id
      LEFT JOIN invite_codes ic ON ic.user_id    = u.user_id AND ic.used = 0
-     WHERE u.active_flag = 1 ${statusCond} ${orgCond}
+     WHERE u.active_flag = 1 ${statusCond} ${orgCond} ${searchCond}
      ORDER BY
        CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 0
             WHEN u.last_checkin_at IS NOT NULL AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0 THEN 1
