@@ -223,7 +223,7 @@ const dict: typeof ko = {
     },
     login: {
       title: "業務システム ログイン",
-      subtitle: "職員・ケースワーカー専用です。一般会員の方はモバイルアプリ(살아있지?)をご利用ください。",
+      subtitle: "職員・ケースワーカー専用です。一般会員の方はモバイルアプリ(안심시그널)をご利用ください。",
       labelEmail: "職員メールアドレス",
       placeholderEmail: "name@city.oo.lg.jp",
       labelPassword: "パスワード",

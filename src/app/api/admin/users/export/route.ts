@@ -19,6 +19,9 @@ interface ExportRow extends RowDataPacket {
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+  if (!["superadmin", "admin", "social_worker"].includes(session.role)) {
+    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  }
 
   const orgId = session.organization_id ?? null;
   const orgCond = orgId ? "AND d.org_id = ?" : "";

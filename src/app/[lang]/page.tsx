@@ -101,7 +101,7 @@ export default async function LandingPage(props: PageProps<"/[lang]">) {
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Link href={`/${lang}/dashboard`}>
+              {/* <Link href={`/${lang}/dashboard`}>
                 <Button
                   size="lg"
                   variant="outline"
@@ -109,16 +109,16 @@ export default async function LandingPage(props: PageProps<"/[lang]">) {
                 >
                   {t.hero.ctaSecondary}
                 </Button>
-              </Link>
+              </Link> */}
             </div>
-            <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-trust-100/80">
+            {/* <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-trust-100/80">
               {t.hero.bullets.map((b) => (
                 <span key={b} className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-safe-500" />
                   {b}
                 </span>
               ))}
-            </div>
+            </div> */}
           </div>
 
           <DashboardMockup t={t.hero.mockup} locale={lang} />
