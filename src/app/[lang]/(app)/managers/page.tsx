@@ -91,11 +91,11 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
               <TableHeader>
                 <TableRow>
                   <TableHead>{t.columns.name}</TableHead>
-                  <TableHead>{t.columns.department}</TableHead>
+                  <TableHead className="w-[140px]">{t.columns.department}</TableHead>
                   <TableHead className="w-[100px]">{t.columns.position}</TableHead>
                   <TableHead>{t.columns.contact}</TableHead>
                   <TableHead className="w-[140px]">{t.columns.role}</TableHead>
-                  <TableHead className="w-[110px]">{t.columns.joinedAt}</TableHead>
+                  <TableHead className="w-[150px]">{t.columns.joinedAt}</TableHead>
                   <TableHead className="w-[100px]">{t.columns.actions}</TableHead>
                 </TableRow>
               </TableHeader>
