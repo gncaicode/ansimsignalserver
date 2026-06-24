@@ -98,6 +98,7 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
             <UsersTable
               users={users}
               locale={lang}
+              lang={lang}
               districts={districtOptions}
               admins={adminOptions}
               t={{

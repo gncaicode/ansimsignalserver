@@ -336,6 +336,86 @@ export async function getUsers(
   };
 }
 
+/* ───────── 대상자 상세 ───────── */
+interface UserDetailRow extends RowDataPacket {
+  user_id: number;
+  name: string;
+  age: number;
+  address: string;
+  emergency_phone: string;
+  last_checkin_at: string | null;
+  interval_hours: number;
+  register_flag: number;
+  district_name: string | null;
+  admin_name: string | null;
+}
+
+export interface UserDetail {
+  user_id: number;
+  name: string;
+  age: number;
+  address: string;
+  emergency_phone: string;
+  last_checkin_at: string | null;
+  interval_hours: number;
+  register_flag: number;
+  district_name: string | null;
+  admin_name: string | null;
+  status: SignalStatus;
+}
+
+export async function getUserById(
+  userId: number,
+  orgId: number | null,
+): Promise<UserDetail | null> {
+  const { rows } = await query<UserDetailRow>(
+    `SELECT
+       u.user_id, u.name, u.age, u.address, u.emergency_phone,
+       u.last_checkin_at, u.interval_hours, u.register_flag,
+       d.name AS district_name,
+       a.name AS admin_name
+     FROM users u
+     LEFT JOIN districts d ON u.district_id = d.dist_id
+     LEFT JOIN admins    a ON u.admin_id    = a.admin_id
+     WHERE u.user_id = ? AND u.active_flag = 1
+       ${orgId ? "AND d.org_id = ?" : ""}
+     LIMIT 1`,
+    orgId ? [userId, orgId] : [userId],
+  );
+  if (!rows[0]) return null;
+  const r = rows[0];
+  return { ...r, status: calcSignalStatus(r.last_checkin_at, r.interval_hours) };
+}
+
+interface ActionLogRow extends RowDataPacket {
+  log_id: number;
+  action_type: string;
+  note: string | null;
+  created_at: string;
+  admin_name: string | null;
+}
+
+export interface ActionLog {
+  log_id: number;
+  action_type: string;
+  note: string | null;
+  created_at: string;
+  admin_name: string | null;
+}
+
+export async function getActionLogs(userId: number): Promise<ActionLog[]> {
+  const { rows } = await query<ActionLogRow>(
+    `SELECT l.log_id, l.action_type, l.note, l.created_at, a.name AS admin_name
+     FROM action_logs l
+     LEFT JOIN admins a ON l.admin_id = a.admin_id
+     WHERE l.user_id = ?
+     ORDER BY l.created_at DESC
+     LIMIT 100`,
+    [userId],
+  );
+  return rows;
+}
+
 /* ───────── 폼용 간단 목록 ───────── */
 interface SimpleRow extends RowDataPacket { id: number; name: string; }
 

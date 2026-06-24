@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Phone, Pencil, X, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ interface CommonT {
 interface Props {
   users: UserListItem[];
   locale: Locale;
+  lang: string;
   districts: Option[];
   admins: Option[];
   t: {
@@ -150,7 +152,7 @@ function ModalInviteCodeButton({ code, copyCode, copied: copiedLabel }: { code: 
   );
 }
 
-export function UsersTable({ users, locale, districts, admins, t, common }: Props) {
+export function UsersTable({ users, locale, lang, districts, admins, t, common }: Props) {
   const [editing, setEditing] = useState<UserListItem | null>(null);
   const [form, setForm] = useState({ name: "", age: "", district_id: "", address: "", emergency_phone: "", admin_id: "" });
   const [error, setError] = useState("");
@@ -237,7 +239,12 @@ export function UsersTable({ users, locale, districts, admins, t, common }: Prop
                   <StatusBadge status={u.status} locale={locale} />
                 </TableCell>
                 <TableCell>
-                  <div className="font-semibold">{u.name}</div>
+                  <Link
+                    href={`/${lang}/users/${u.user_id}`}
+                    className="font-semibold text-trust-700 hover:underline"
+                  >
+                    {u.name}
+                  </Link>
                   <div className="text-xs text-subtle">#{u.user_id}</div>
                   {u.register_flag === 1 ? (
                     <>
