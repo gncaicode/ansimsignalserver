@@ -14,7 +14,8 @@ export function maskPhone(phone: string): string {
 // 시간/날짜 포맷터는 lib/i18n/format.ts에 위치 (locale-aware)
 
 // MySQL DATETIME 파라미터용 KST 현재 시각 ("YYYY-MM-DD HH:MM:SS.mmm")
-// MySQL 서버가 UTC이므로 NOW(3)을 쓰는 대신 Node.js에서 직접 계산해 전달
+// Date.now()는 항상 UTC ms이므로 +9h 보정 후 toISOString()으로 KST 벽시계 문자열 생성
+// → MySQL 서버 타임존(KST)에 맞는 DATETIME 문자열을 안전하게 삽입
 export function nowKst(): string {
   return new Date(Date.now() + 9 * 3_600_000)
     .toISOString()

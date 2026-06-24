@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { FileText, Plus } from "lucide-react";
+import { FileText, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ActionLog } from "@/lib/dashboard-data";
 import type { ActionModalT } from "@/components/dashboard/ActionRecordButton";
+import type { Locale } from "@/lib/i18n";
+import { formatShortDateTime } from "@/lib/i18n/format";
 
 interface T {
   actionTitle: string;
@@ -20,10 +22,12 @@ interface Props {
   userId: string;
   userName: string;
   initialLogs: ActionLog[];
+  locale: Locale;
   t: T;
 }
 
-export function ActionLogSection({ userId, userName, initialLogs, t }: Props) {
+
+export function ActionLogSection({ userId, userName, initialLogs, locale, t }: Props) {
   const [logs, setLogs] = useState<ActionLog[]>(initialLogs);
   const [open, setOpen] = useState(false);
   const [actionType, setActionType] = useState("visit");
@@ -101,7 +105,7 @@ export function ActionLogSection({ userId, userName, initialLogs, t }: Props) {
                   )}
                 </div>
                 <span className="shrink-0 text-xs text-subtle">
-                  {log.created_at.slice(0, 16).replace("T", " ")}
+                  {formatShortDateTime(log.created_at.replace(" ", "T") + "+09:00", locale)}
                 </span>
               </div>
               {log.note && (
@@ -116,10 +120,14 @@ export function ActionLogSection({ userId, userName, initialLogs, t }: Props) {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-xl bg-white shadow-xl p-6">
-            <h2 className="text-lg font-bold mb-4">{t.actionModal.title} — {userName}</h2>
-
-            <div className="space-y-3">
+          <div className="relative z-10 w-full max-w-md rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h2 className="text-base font-bold">{t.actionModal.title} — {userName}</h2>
+              <button onClick={() => setOpen(false)} className="text-muted hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-3">
               <div>
                 <label className="block text-sm font-medium mb-1">{t.actionModal.typeLabel}</label>
                 <select
@@ -142,18 +150,18 @@ export function ActionLogSection({ userId, userName, initialLogs, t }: Props) {
                   className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500 resize-none"
                 />
               </div>
-            </div>
 
-            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-            {success && <p className="mt-2 text-sm text-status-safe-fg">{t.actionModal.successMsg}</p>}
+              {error && <p className="text-sm text-red-600">{error}</p>}
+              {success && <p className="text-sm text-status-safe-fg">{t.actionModal.successMsg}</p>}
 
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-                {t.actionModal.cancel}
-              </Button>
-              <Button onClick={submit} disabled={loading}>
-                {loading ? t.actionModal.saving : t.actionModal.save}
-              </Button>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+                  {t.actionModal.cancel}
+                </Button>
+                <Button onClick={submit} disabled={loading}>
+                  {loading ? t.actionModal.saving : t.actionModal.save}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

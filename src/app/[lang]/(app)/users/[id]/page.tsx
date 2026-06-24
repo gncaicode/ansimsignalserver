@@ -113,6 +113,7 @@ export default async function UserDetailPage(
               userId={String(user.user_id)}
               userName={user.name}
               initialLogs={actionLogs}
+              locale={lang}
               t={{
                 actionTitle:  t.actionTitle,
                 actionDesc:   t.actionDesc,

@@ -17,8 +17,8 @@ function calcSignalStatus(lastCheckinAt: string | null, intervalHours: number): 
   return "safe";
 }
 
-// KST 현재 시각 SQL 표현 — MySQL 서버가 UTC이므로 +9시간 보정
-const NOW_KST = '(NOW() + INTERVAL 9 HOUR)';
+// KST 현재 시각 SQL 표현 — MySQL 서버가 KST이므로 NOW() 그대로 사용
+const NOW_KST = 'NOW()';
 
 // 동적 위급·주의 판단 SQL 조건 (DB status 컬럼 미사용)
 const DYNAMIC_CRITICAL_COND = `

@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
     "담당자":     r.admin_name ?? "",
     "상태":       statusLabel[r.status] ?? r.status,
     "마지막체크인": r.last_checkin_at
-      ? new Date(r.last_checkin_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })
+      ? new Date(r.last_checkin_at.replace(' ', 'T') + '+09:00').toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })
       : "",
     "앱가입":     r.register_flag === 1 ? "완료" : "미가입",
   }));

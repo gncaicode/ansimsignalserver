@@ -12,8 +12,8 @@ function getPool(): mysql.Pool {
       database:           process.env.DB_NAME,
       waitForConnections: true,
       connectionLimit:    10,
-      timezone:           '+09:00',
-      dateStrings:        true,   // DATETIME을 Date 객체 대신 문자열로 반환
+      timezone:           '+09:00', // dateStrings:true 환경에서는 타입캐스트에만 영향 (실질적 no-op)
+      dateStrings:        true,   // DATETIME을 Date 객체 대신 문자열로 반환 (KST 서버 기준 문자열)
       charset:            'utf8mb4',
     });
   }
