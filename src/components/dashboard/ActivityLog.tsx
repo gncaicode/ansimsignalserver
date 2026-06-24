@@ -5,6 +5,7 @@ import {
   HeartPulse,
   UserPlus,
 } from "lucide-react";
+import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { ActivityLogEntry, LogType } from "@/lib/types";
@@ -32,10 +33,12 @@ export function ActivityLog({
   entries,
   locale,
   labels,
+  lang,
 }: {
   entries: ActivityLogEntry[];
   locale: Locale;
   labels: ActivityLabels;
+  lang: string;
 }) {
   return (
     <Card>
@@ -44,9 +47,9 @@ export function ActivityLog({
           <CardTitle>{labels.title}</CardTitle>
           <p className="mt-1 text-xs text-muted">{labels.desc}</p>
         </div>
-        <button className="text-xs font-semibold text-trust-700 hover:underline">
+        <Link href={`/${lang}/users`} className="text-xs font-semibold text-trust-700 hover:underline">
           {labels.viewAll}
-        </button>
+        </Link>
       </CardHeader>
       <CardContent className="px-0 pb-0">
         <ul className="divide-y divide-border">

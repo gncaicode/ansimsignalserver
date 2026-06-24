@@ -81,6 +81,7 @@ export default async function DashboardPage(
           <ActivityLog
             entries={activityLog}
             locale={lang}
+            lang={lang}
             labels={t.activity}
           />
           <DistrictBreakdown labels={t.district} data={districtBreakdown} />
