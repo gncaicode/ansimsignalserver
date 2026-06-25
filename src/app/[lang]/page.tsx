@@ -242,7 +242,7 @@ export default async function LandingPage(props: PageProps<"/[lang]">) {
           <h2 className="mt-3 text-3xl md:text-4xl font-extrabold tracking-tight">
             {t.process.title}
           </h2>
-          <div className="mt-12 grid md:grid-cols-4 gap-5">
+          <div className="mt-12 grid md:grid-cols-3 gap-5">
             {t.process.steps.map((s) => (
               <div
                 key={s.n}
