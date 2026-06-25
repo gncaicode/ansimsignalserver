@@ -3,17 +3,18 @@ import type { SignalStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const LABELS: Record<"ko" | "ja", Record<SignalStatus, string>> = {
-  ko: { safe: "안전", warn: "주의", danger: "위급" },
-  ja: { safe: "安全", warn: "注意", danger: "緊急" },
+  ko: { safe: "안전", warn: "주의", danger: "위급", pending: "대기" },
+  ja: { safe: "安全", warn: "注意", danger: "緊急", pending: "待機" },
 };
 
 const META: Record<
   SignalStatus,
-  { tone: "safe" | "warn" | "danger"; dot: string }
+  { tone: "safe" | "warn" | "danger" | "pending"; dot: string }
 > = {
-  safe: { tone: "safe", dot: "bg-status-safe" },
-  warn: { tone: "warn", dot: "bg-status-warn" },
-  danger: { tone: "danger", dot: "bg-status-danger" },
+  safe:    { tone: "safe",    dot: "bg-status-safe" },
+  warn:    { tone: "warn",    dot: "bg-status-warn" },
+  danger:  { tone: "danger",  dot: "bg-status-danger" },
+  pending: { tone: "pending", dot: "bg-slate-400" },
 };
 
 export function StatusBadge({

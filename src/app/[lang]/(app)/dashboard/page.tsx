@@ -69,6 +69,7 @@ export default async function DashboardPage(
       <main className="flex-1 px-6 py-6 space-y-6 max-w-[1400px] mx-auto w-full">
         <SummaryCards
           total={stats.total}
+          pending={stats.pending}
           danger={stats.danger}
           warn={stats.warn}
           safe={stats.safe}

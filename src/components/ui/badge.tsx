@@ -7,6 +7,7 @@ type Tone =
   | "safe"
   | "warn"
   | "danger"
+  | "pending"
   | "outline";
 
 const tones: Record<Tone, string> = {
@@ -15,6 +16,7 @@ const tones: Record<Tone, string> = {
   safe: "bg-status-safe-bg text-status-safe-fg",
   warn: "bg-status-warn-bg text-status-warn-fg",
   danger: "bg-status-danger-bg text-status-danger-fg",
+  pending: "bg-slate-100 text-slate-500",
   outline: "border border-border-strong text-foreground",
 };
 

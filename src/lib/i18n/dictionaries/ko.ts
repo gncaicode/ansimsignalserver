@@ -315,6 +315,9 @@ const dict = {
       totalUnit: "명",
       totalSub: (districts: { name: string; total: number }[]) =>
         districts.slice(0, 2).map((d) => `${d.name} ${d.total}`).join(' · ') || '구역 정보 없음',
+      pendingLabel: "⏳ 대기 (앱 미연결)",
+      pendingUnit: "명",
+      pendingSub: "앱 연결 후 모니터링 시작",
       dangerLabel: "🚨 위급 (주기 초과 시)",
       dangerUnit: "명",
       dangerSub: "즉시 현장 확인 필요",

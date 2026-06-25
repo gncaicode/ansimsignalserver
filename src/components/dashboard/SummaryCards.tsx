@@ -1,8 +1,8 @@
-import { AlertTriangle, AlertCircle, CheckCircle2, UsersRound } from "lucide-react";
+import { AlertTriangle, AlertCircle, CheckCircle2, UsersRound, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-type Tone = "neutral" | "danger" | "warn" | "safe";
+type Tone = "neutral" | "danger" | "warn" | "safe" | "pending";
 
 const toneStyles: Record<
   Tone,
@@ -32,12 +32,21 @@ const toneStyles: Record<
     fg: "text-status-safe-fg",
     sub: "text-status-safe-fg",
   },
+  pending: {
+    ring: "ring-slate-200",
+    bg: "bg-slate-100",
+    fg: "text-slate-500",
+    sub: "text-slate-400",
+  },
 };
 
 export type SummaryLabels = {
   totalLabel: string;
   totalUnit: string;
   totalSub: (districts: { name: string; total: number }[]) => string;
+  pendingLabel: string;
+  pendingUnit: string;
+  pendingSub: string;
   dangerLabel: string;
   dangerUnit: string;
   dangerSub: string;
@@ -51,6 +60,7 @@ export type SummaryLabels = {
 
 export function SummaryCards({
   total,
+  pending,
   danger,
   warn,
   safe,
@@ -58,12 +68,14 @@ export function SummaryCards({
   labels,
 }: {
   total: number;
+  pending: number;
   danger: number;
   warn: number;
   safe: number;
   districtBreakdown: { name: string; total: number }[];
   labels: SummaryLabels;
 }) {
+  const connected = total - pending;
   const items = [
     {
       label: labels.totalLabel,
@@ -72,6 +84,14 @@ export function SummaryCards({
       tone: "neutral" as Tone,
       icon: UsersRound,
       sub: labels.totalSub(districtBreakdown),
+    },
+    {
+      label: labels.pendingLabel,
+      value: pending,
+      unit: labels.pendingUnit,
+      tone: "pending" as Tone,
+      icon: Clock,
+      sub: labels.pendingSub,
     },
     {
       label: labels.dangerLabel,
@@ -95,12 +115,12 @@ export function SummaryCards({
       unit: labels.safeUnit,
       tone: "safe" as Tone,
       icon: CheckCircle2,
-      sub: labels.safeSub(Math.round((safe / total) * 100)),
+      sub: labels.safeSub(connected > 0 ? Math.round((safe / connected) * 100) : 100),
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
       {items.map((item) => {
         const t = toneStyles[item.tone];
         const Icon = item.icon;

@@ -9,7 +9,9 @@ function toIsoKst(s: string): string {
 }
 
 // last_checkin_at + interval_hours 기반 실시간 상태 계산 (Flutter 앱과 동일 로직)
-function calcSignalStatus(lastCheckinAt: string | null, intervalHours: number): SignalStatus {
+// registerFlag=0이면 앱 미연결 → 대기
+function calcSignalStatus(lastCheckinAt: string | null, intervalHours: number, registerFlag = 1): SignalStatus {
+  if (registerFlag === 0) return "pending";
   if (!lastCheckinAt) return "safe";
   const remainingMs = new Date(toIsoKst(lastCheckinAt)).getTime() + intervalHours * 3_600_000 - Date.now();
   if (remainingMs < 0) return "danger";
@@ -47,6 +49,7 @@ interface StatsRow extends RowDataPacket {
   danger: number;
   warn: number;
   safe: number;
+  pending: number;
 }
 
 export async function getDashboardStats(orgId: number | null, districtIds?: number[] | null) {
@@ -55,14 +58,15 @@ export async function getDashboardStats(orgId: number | null, districtIds?: numb
   const { rows } = await query<StatsRow>(
     `SELECT
        COUNT(*) AS total,
-       SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
-       SUM(CASE WHEN u.last_checkin_at IS NOT NULL
+       SUM(CASE WHEN u.register_flag = 0 THEN 1 ELSE 0 END) AS pending,
+       SUM(CASE WHEN u.register_flag = 1 AND u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
+       SUM(CASE WHEN u.register_flag = 1 AND u.last_checkin_at IS NOT NULL
                      AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
                      AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
                 THEN 1 ELSE 0 END) AS warn,
-       SUM(CASE WHEN u.last_checkin_at IS NULL
+       SUM(CASE WHEN u.register_flag = 1 AND (u.last_checkin_at IS NULL
                      OR (${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
-                         AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0)
+                         AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0))
                 THEN 1 ELSE 0 END) AS safe
      FROM users u
      ${filterJoin}
@@ -71,10 +75,11 @@ export async function getDashboardStats(orgId: number | null, districtIds?: numb
   );
   const r = rows[0];
   return {
-    total:  Number(r?.total  ?? 0),
-    danger: Number(r?.danger ?? 0),
-    warn:   Number(r?.warn   ?? 0),
-    safe:   Number(r?.safe   ?? 0),
+    total:   Number(r?.total   ?? 0),
+    pending: Number(r?.pending ?? 0),
+    danger:  Number(r?.danger  ?? 0),
+    warn:    Number(r?.warn    ?? 0),
+    safe:    Number(r?.safe    ?? 0),
   };
 }
 
@@ -89,6 +94,7 @@ interface UserRow extends RowDataPacket {
   alert_sent_at: string | null;
   status: string;
   interval_hours: number;
+  register_flag: number;
   district_name: string | null;
   admin_name: string | null;
 }
@@ -98,7 +104,7 @@ export async function getCriticalUsers(orgId: number | null, districtIds?: numbe
   const { rows } = await query<UserRow>(
     `SELECT
        u.user_id, u.name, u.age, u.address, u.emergency_phone,
-       u.last_checkin_at, u.alert_sent_at, u.status, u.interval_hours,
+       u.last_checkin_at, u.alert_sent_at, u.status, u.interval_hours, u.register_flag,
        d.name AS district_name,
        a.name AS admin_name
      FROM users u
@@ -131,7 +137,7 @@ export async function getCriticalUsers(orgId: number | null, districtIds?: numbe
       caseworker:            u.admin_name ?? "",
       lastCheckIn,
       hoursSinceLastCheckIn: hoursSince,
-      status:                calcSignalStatus(u.last_checkin_at, u.interval_hours),
+      status:                calcSignalStatus(u.last_checkin_at, u.interval_hours, u.register_flag),
     };
   });
 }
@@ -182,6 +188,7 @@ interface LogRow extends RowDataPacket {
   last_checkin_at: string | null;
   alert_sent_at: string | null;
   interval_hours: number;
+  register_flag: number;
   admin_name: string | null;
 }
 
@@ -189,7 +196,7 @@ export async function getActivityLog(orgId: number | null, districtIds?: number[
   const f = districtFilter(districtIds, orgId);
   const { rows } = await query<LogRow>(
     `SELECT
-       u.user_id, u.name, u.last_checkin_at, u.alert_sent_at, u.interval_hours,
+       u.user_id, u.name, u.last_checkin_at, u.alert_sent_at, u.interval_hours, u.register_flag,
        d.name AS district_name,
        a.name AS admin_name
      FROM users u
@@ -209,7 +216,7 @@ export async function getActivityLog(orgId: number | null, districtIds?: number[
   const entries: ActivityLogEntry[] = [];
 
   for (const u of rows) {
-    const status = calcSignalStatus(u.last_checkin_at, u.interval_hours);
+    const status = calcSignalStatus(u.last_checkin_at, u.interval_hours, u.register_flag);
     const district = u.district_name ?? "";
 
     if (u.alert_sent_at) {
@@ -310,11 +317,13 @@ export async function getUsers(
 ): Promise<{ users: UserListItem[]; total: number }> {
   const offset = (page - 1) * pageSize;
   const statusCond = statusFilter && statusFilter !== "all"
-    ? statusFilter === "danger"
-      ? `AND u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)`
-      : statusFilter === "warn"
-        ? `AND u.last_checkin_at IS NOT NULL AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0`
-        : `AND (u.last_checkin_at IS NULL OR (${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 3.0))`
+    ? statusFilter === "pending"
+      ? `AND u.register_flag = 0`
+      : statusFilter === "danger"
+        ? `AND u.register_flag = 1 AND u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)`
+        : statusFilter === "warn"
+          ? `AND u.register_flag = 1 AND u.last_checkin_at IS NOT NULL AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0`
+          : `AND u.register_flag = 1 AND (u.last_checkin_at IS NULL OR (${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0))`
     : "";
   const f = districtFilter(districtIds, orgId);
   const searchCond = q ? "AND (u.name LIKE ? OR u.address LIKE ?)" : "";
@@ -364,7 +373,7 @@ export async function getUsers(
     total,
     users: rows.map((r) => ({
       ...r,
-      status: calcSignalStatus(r.last_checkin_at, r.interval_hours),
+      status: calcSignalStatus(r.last_checkin_at, r.interval_hours, r.register_flag),
     })),
   };
 }

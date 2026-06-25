@@ -321,6 +321,9 @@ const dict: typeof ko = {
       totalUnit: "名",
       totalSub: (districts: { name: string; total: number }[]) =>
         districts.slice(0, 2).map((d) => `${d.name} ${d.total}`).join(' · ') || '地区情報なし',
+      pendingLabel: "⏳ 待機 (アプリ未連携)",
+      pendingUnit: "名",
+      pendingSub: "アプリ連携後にモニタリング開始",
       dangerLabel: "🚨 緊急 (周期超過時)",
       dangerUnit: "名",
       dangerSub: "直ちに現地確認が必要",

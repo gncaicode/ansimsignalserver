@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText } from "lucide-react";
+import { FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ActionLog {
@@ -94,8 +94,14 @@ export function ActionRecordButton({ userId, userName, btnLabel, btnA11y, t }: P
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-xl bg-white shadow-xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-bold mb-4">{t.title} — {userName}</h2>
+          <div className="relative z-10 w-full max-w-md rounded-xl bg-white shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h2 className="text-base font-bold">{t.title} — {userName}</h2>
+              <button onClick={() => setOpen(false)} className="text-muted hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="px-6 py-5 pb-6">
 
             <div className="space-y-3">
               <div>
@@ -160,6 +166,7 @@ export function ActionRecordButton({ userId, userName, btnLabel, btnA11y, t }: P
                   ))}
                 </ul>
               )}
+            </div>
             </div>
           </div>
         </div>

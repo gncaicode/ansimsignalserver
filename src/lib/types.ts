@@ -1,4 +1,4 @@
-export type SignalStatus = "safe" | "warn" | "danger";
+export type SignalStatus = "safe" | "warn" | "danger" | "pending";
 
 export interface Subject {
   id: string;
