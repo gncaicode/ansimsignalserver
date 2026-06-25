@@ -42,7 +42,7 @@ export function AuthLayout({
             <br />
             {panel.title.line2}
           </h2>
-          <p className="mt-5 text-trust-100/90 leading-relaxed">{panel.desc}</p>
+          {panel.desc && <p className="mt-5 text-trust-100/90 leading-relaxed">{panel.desc}</p>}
           <ul className="mt-8 space-y-3 text-sm text-trust-100/90">
             {panel.bullets.map((b, i) => {
               const Icon = [ShieldCheck, Lock, Server][i] ?? ShieldCheck;
