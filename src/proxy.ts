@@ -7,9 +7,12 @@ const LOCALES = ["ko", "ja"] as const;
 const DEFAULT_LOCALE = "ko";
 const LOCALE_COOKIE = "NEXT_LOCALE";
 const SESSION_COOKIE = "admin_session";
+const SYSTEM_COOKIE = "system_session";
 
 // (app) 보호 경로
 const PROTECTED = /^\/[a-z]{2}\/(dashboard|users|managers|alerts|reports|settings)/;
+// 시스템 보호 경로
+const SYSTEM_PROTECTED = /^\/system\/(logs)/;
 
 function detectLocale(request: NextRequest): string {
   const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
@@ -31,7 +34,31 @@ function detectLocale(request: NextRequest): string {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1) 로케일 리다이렉트
+  // 1) 시스템 보호 경로 검사 (로케일 리다이렉트 전에)
+  if (SYSTEM_PROTECTED.test(pathname)) {
+    const token = request.cookies.get(SYSTEM_COOKIE)?.value;
+    let valid = false;
+    if (token) {
+      try {
+        const secret = new TextEncoder().encode(process.env.JWT_SECRET! + "_system");
+        await jwtVerify(token, secret);
+        valid = true;
+      } catch {
+        // 만료 또는 무효
+      }
+    }
+    if (!valid) {
+      return NextResponse.redirect(new URL("/system/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 2) 시스템 경로는 로케일 리다이렉트 제외
+  if (pathname.startsWith("/system")) {
+    return NextResponse.next();
+  }
+
+  // 3) 로케일 리다이렉트
   const pathnameHasLocale = LOCALES.some(
     (l) => pathname === `/${l}` || pathname.startsWith(`/${l}/`),
   );
@@ -42,7 +69,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(target);
   }
 
-  // 2) 보호 경로 인증 검사
+  // 4) 보호 경로 인증 검사
   if (PROTECTED.test(pathname)) {
     const token = request.cookies.get(SESSION_COOKIE)?.value;
     let valid = false;
