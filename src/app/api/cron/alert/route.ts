@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
        FROM users u
        LEFT JOIN admins a ON u.admin_id = a.admin_id
        WHERE u.last_checkin_at IS NOT NULL
-         AND DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) < NOW()
+         AND TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
          AND u.alert_sent_at IS NULL`
     );
 

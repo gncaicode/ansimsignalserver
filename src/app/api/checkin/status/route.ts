@@ -26,12 +26,13 @@ export async function GET(req: NextRequest) {
     const now            = new Date();
     const remainingMs          = deadline.getTime() - now.getTime();
     const remainingHours       = remainingMs / 3_600_000;
+    const dangerThresholdHours  = user.interval_hours / 12;
     const warningThresholdHours = user.interval_hours / 3;
 
     let status: 'safe' | 'warning' | 'overdue';
-    if (remainingMs < 0)                        status = 'overdue';
+    if (remainingHours < dangerThresholdHours)       status = 'overdue';
     else if (remainingHours < warningThresholdHours) status = 'warning';
-    else                                        status = 'safe';
+    else                                             status = 'safe';
 
     return NextResponse.json({
       status,

@@ -12,7 +12,7 @@ function toIsoKst(s: string): string {
 function calcSignalStatus(lastCheckinAt: string | null, intervalHours: number): SignalStatus {
   if (!lastCheckinAt) return "safe";
   const remainingMs = new Date(toIsoKst(lastCheckinAt)).getTime() + intervalHours * 3_600_000 - Date.now();
-  if (remainingMs < 0) return "danger";
+  if (remainingMs < (intervalHours / 12) * 3_600_000) return "danger";
   if (remainingMs < (intervalHours / 3) * 3_600_000) return "warn";
   return "safe";
 }
@@ -33,10 +33,10 @@ function districtFilter(districtIds: number[] | null | undefined, orgId: number 
 }
 
 // 동적 위급·주의 판단 SQL 조건 (DB status 컬럼 미사용)
+// 위급: 남은시간 < interval/12, 주의: interval/12 <= 남은시간 < interval/3
 const DYNAMIC_CRITICAL_COND = `
   u.last_checkin_at IS NOT NULL AND (
-    ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
-    OR TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0
+    TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0
   )
 `;
 
@@ -54,14 +54,15 @@ export async function getDashboardStats(orgId: number | null, districtIds?: numb
   const { rows } = await query<StatsRow>(
     `SELECT
        COUNT(*) AS total,
-       SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
        SUM(CASE WHEN u.last_checkin_at IS NOT NULL
-                     AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
+                     AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
+                THEN 1 ELSE 0 END) AS danger,
+       SUM(CASE WHEN u.last_checkin_at IS NOT NULL
+                     AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0
                      AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0
                 THEN 1 ELSE 0 END) AS warn,
        SUM(CASE WHEN u.last_checkin_at IS NULL
-                     OR (${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
-                         AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 3.0)
+                     OR TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 3.0
                 THEN 1 ELSE 0 END) AS safe
      FROM users u
      ${filterJoin}
@@ -107,7 +108,7 @@ export async function getCriticalUsers(orgId: number | null, districtIds?: numbe
        AND (${DYNAMIC_CRITICAL_COND})
        ${f.cond}
      ORDER BY
-       CASE WHEN ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 0 ELSE 1 END,
+       CASE WHEN TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0 THEN 0 ELSE 1 END,
        u.last_checkin_at ASC
      LIMIT 20`,
     f.params
@@ -149,9 +150,11 @@ export async function getDistrictBreakdown(orgId: number | null, districtIds?: n
     `SELECT
        d.name,
        COUNT(*) AS total,
-       SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
        SUM(CASE WHEN u.last_checkin_at IS NOT NULL
-                     AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
+                     AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
+                THEN 1 ELSE 0 END) AS danger,
+       SUM(CASE WHEN u.last_checkin_at IS NOT NULL
+                     AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0
                      AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0
                 THEN 1 ELSE 0 END) AS warn
      FROM users u
