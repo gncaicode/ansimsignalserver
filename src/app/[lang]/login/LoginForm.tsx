@@ -65,7 +65,7 @@ export function LoginForm({ lang, t }: { lang: string; t: LoginDict }) {
       <div>
         <div className="flex items-center justify-between">
           <Label htmlFor="password">{t.labelPassword}</Label>
-          <Link href="#" className="text-xs font-medium text-trust-700 hover:underline">
+          <Link href={`/${lang}/forgot-password`} className="text-xs font-medium text-trust-700 hover:underline">
             {t.forgot}
           </Link>
         </div>
