@@ -278,7 +278,6 @@ export default async function LandingPage(props: PageProps<"/[lang]">) {
           </div>
 
           <div className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-7 text-sm">
-            <hr className="my-5 border-white/10" />
             <ul className="space-y-2.5 text-trust-100/90">
               {t.cta.contactCard.items.map((line) => (
                 <li key={line}>{line}</li>
