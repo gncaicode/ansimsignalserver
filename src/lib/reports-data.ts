@@ -116,15 +116,14 @@ export async function getMonthlyReport(
   const { rows: statsRows } = await query<StatsRow>(
     `SELECT
        COUNT(*) AS total,
+       SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
        SUM(CASE WHEN u.last_checkin_at IS NOT NULL
+                    AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
                     AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
-               THEN 1 ELSE 0 END) AS danger,
-       SUM(CASE WHEN u.last_checkin_at IS NOT NULL
-                    AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0
-                    AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0
                THEN 1 ELSE 0 END) AS warn,
        SUM(CASE WHEN u.last_checkin_at IS NULL
-                    OR TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 3.0
+                    OR (${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
+                        AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0)
                THEN 1 ELSE 0 END) AS safe
      FROM users u
      ${filterJoin}
@@ -192,12 +191,10 @@ export async function getMonthlyReport(
         SELECT
           d.name,
           COUNT(DISTINCT u.user_id) AS total,
+          SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
           SUM(CASE WHEN u.last_checkin_at IS NOT NULL
+                       AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
                        AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
-                  THEN 1 ELSE 0 END) AS danger,
-          SUM(CASE WHEN u.last_checkin_at IS NOT NULL
-                       AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0
-                       AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0
                   THEN 1 ELSE 0 END) AS warn,
           COUNT(DISTINCT CASE WHEN a.role = 'social_worker' AND a.active_flag = 1 AND a.withdraw_flag = 0 THEN a.admin_id END) AS worker_count,
           SUM(CASE WHEN u.last_checkin_at >= ? AND u.last_checkin_at < ? THEN 1 ELSE 0 END) AS checked_in
@@ -215,12 +212,10 @@ export async function getMonthlyReport(
       SELECT
         d.name,
         COUNT(DISTINCT u.user_id) AS total,
+        SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
         SUM(CASE WHEN u.last_checkin_at IS NOT NULL
+                     AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
                      AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
-                THEN 1 ELSE 0 END) AS danger,
-        SUM(CASE WHEN u.last_checkin_at IS NOT NULL
-                     AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0
-                     AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0
                 THEN 1 ELSE 0 END) AS warn,
         COUNT(DISTINCT CASE WHEN a.role = 'social_worker' AND a.active_flag = 1 AND a.withdraw_flag = 0 THEN a.admin_id END) AS worker_count,
         SUM(CASE WHEN u.last_checkin_at >= ? AND u.last_checkin_at < ? THEN 1 ELSE 0 END) AS checked_in
