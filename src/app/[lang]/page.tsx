@@ -261,7 +261,7 @@ export default async function LandingPage(props: PageProps<"/[lang]">) {
       </section>
 
       {/* ============= CTA ============= */}
-      <section id="contact" className="bg-trust-900 text-white">
+      <section id="contact" className="bg-trust-900 text-white scroll-mt-16">
         <div className="mx-auto max-w-7xl px-6 py-20 grid lg:grid-cols-[1.2fr_1fr] gap-12 items-center">
           <div>
             <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">
