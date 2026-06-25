@@ -270,12 +270,11 @@ export default async function LandingPage(props: PageProps<"/[lang]">) {
               {t.cta.title.line2}
             </h2>
             <p className="mt-5 text-trust-100/90">{t.cta.desc}</p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button size="lg" variant="success">
-                {t.cta.ctaPrimary}
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
+            <ul className="mt-6 space-y-2 text-sm text-trust-100/90">
+              {t.cta.contactCard.items.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
           </div>
 
           <InquiryForm labels={t.cta.form} />
