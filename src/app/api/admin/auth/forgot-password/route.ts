@@ -34,8 +34,6 @@ export async function POST(req: NextRequest) {
 
   const admin = rows[0];
   const token = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1시간
-  const expiresStr = expiresAt.toISOString().slice(0, 19).replace("T", " ");
 
   // 기존 미사용 토큰 무효화
   await execute(
@@ -43,9 +41,10 @@ export async function POST(req: NextRequest) {
     [admin.admin_id],
   );
 
+  // expires_at은 MySQL NOW() 기준 +1시간 (타임존 문제 방지)
   await execute(
-    "INSERT INTO password_reset_tokens (admin_id, token, expires_at) VALUES (?, ?, ?)",
-    [admin.admin_id, token, expiresStr],
+    "INSERT INTO password_reset_tokens (admin_id, token, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))",
+    [admin.admin_id, token],
   );
 
   const host = req.headers.get("host") ?? "localhost:3003";

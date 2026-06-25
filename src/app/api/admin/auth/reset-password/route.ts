@@ -6,7 +6,6 @@ import type { RowDataPacket } from "mysql2";
 interface TokenRow extends RowDataPacket {
   id: number;
   admin_id: number;
-  expires_at: string;
   used_flag: number;
 }
 
@@ -21,16 +20,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "비밀번호는 8자 이상이어야 합니다." }, { status: 400 });
   }
 
+  // 만료 및 사용 여부를 MySQL NOW() 기준으로 비교 (타임존 문제 방지)
   const { rows } = await query<TokenRow>(
-    `SELECT id, admin_id, expires_at, used_flag
+    `SELECT id, admin_id, used_flag
      FROM password_reset_tokens
-     WHERE token = ? LIMIT 1`,
+     WHERE token = ? AND used_flag = 0 AND expires_at > NOW()
+     LIMIT 1`,
     [token],
   );
 
   const row = rows[0];
 
-  if (!row || row.used_flag === 1 || new Date(row.expires_at) < new Date()) {
+  if (!row) {
     return NextResponse.json({ error: "링크가 만료되었거나 유효하지 않습니다." }, { status: 400 });
   }
 
