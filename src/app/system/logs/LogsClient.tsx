@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { LogIn, ShieldAlert, LogOut } from "lucide-react";
+import { LogIn, ShieldAlert, LogOut, Download } from "lucide-react";
 
 type Org = { org_id: number; name: string };
 
@@ -130,6 +130,17 @@ export function LogsClient() {
 
   function resetFilters() {
     setOrg(""); setAction(""); setDateFrom(""); setDateTo(""); setAdminName("");
+  }
+
+  function buildExportUrl() {
+    const params = new URLSearchParams();
+    if (org) params.set("org", org);
+    if (action) params.set("action", action);
+    else params.set("actionGroup", menu);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
+    if (adminName) params.set("adminName", adminName);
+    return `/api/system/logs/export?${params}`;
   }
 
   const totalPages = Math.max(1, Math.ceil(total / 50));
@@ -265,8 +276,16 @@ export function LogsClient() {
 
           {/* 테이블 */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <span className="text-sm text-gray-600">총 <strong>{total.toLocaleString()}</strong>건</span>
+              <a
+                href={buildExportUrl()}
+                download
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-700 border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <Download className="h-3.5 w-3.5" />
+                엑셀 다운로드
+              </a>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
