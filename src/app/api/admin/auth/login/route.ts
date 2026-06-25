@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { query } from "@/lib/db";
 import { createSession, COOKIE_NAME, type AdminSession } from "@/lib/session";
+import { logAccess } from "@/lib/access-log";
 import type { RowDataPacket } from "mysql2";
 
 interface AdminRow extends RowDataPacket {
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
   const admin = rows[0];
 
   if (!admin) {
+    await logAccess({ action: "login_fail", email, req });
     return NextResponse.json({ error: "이메일 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
   }
 
@@ -45,6 +47,7 @@ export async function POST(req: NextRequest) {
 
   const valid = await bcrypt.compare(password, admin.password_hash);
   if (!valid) {
+    await logAccess({ adminId: admin.admin_id, action: "login_fail", email, req });
     return NextResponse.json({ error: "이메일 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
   }
 
@@ -62,6 +65,8 @@ export async function POST(req: NextRequest) {
     organization_id: admin.organization_id,
     district_ids,
   });
+
+  await logAccess({ adminId: admin.admin_id, action: "login_success", email: admin.email, req });
 
   const res = NextResponse.json({ ok: true });
   res.cookies.set(COOKIE_NAME, token, {

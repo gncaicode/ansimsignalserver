@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/table";
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
+import { logAccess } from "@/lib/access-log";
+import { headers } from "next/headers";
 import { getAdmins, getOrgName, getAlertCount, getDistrictOptions } from "@/lib/dashboard-data";
 import { ManagerActionsCell } from "@/components/dashboard/ManagerActionsCell";
 import type { ManagerRole } from "@/lib/types";
@@ -28,6 +30,10 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
   const [dict, session] = await Promise.all([getDictionary(lang), getSession()]);
   const t = dict.managers;
   const orgId = session?.organization_id ?? null;
+
+  if (session) {
+    logAccess({ adminId: session.admin_id, action: "view_managers", headers: await headers() });
+  }
 
   const adminInfo = getAdminHeaderInfo(session, lang);
   const canEdit = session?.role === "superadmin" || session?.role === "admin";

@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getDictionary, hasLocale, type Locale } from "@/lib/i18n";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
+import { logAccess } from "@/lib/access-log";
+import { headers } from "next/headers";
 import { getUsers, getOrgName, getDistrictOptions, getAdminOptions, getAlertCount } from "@/lib/dashboard-data";
 import { UsersTable } from "@/components/dashboard/UsersTable";
 import { BulkImportModal } from "@/components/dashboard/BulkImportModal";
@@ -26,6 +28,10 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
   const t = dict.users;
   const orgId = session?.organization_id ?? null;
   const districtIds = session?.role === "social_worker" ? (session?.district_ids ?? []) : null;
+
+  if (session) {
+    logAccess({ adminId: session.admin_id, action: "view_users", headers: await headers() });
+  }
 
   const adminInfo = getAdminHeaderInfo(session, lang);
 

@@ -9,6 +9,8 @@ import { ActionLogSection } from "@/components/dashboard/ActionLogSection";
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { formatShortDateTime, formatRelativeTime } from "@/lib/i18n/format";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
+import { logAccess } from "@/lib/access-log";
+import { headers } from "next/headers";
 import { getUserById, getActionLogs, getOrgName, getAlertCount } from "@/lib/dashboard-data";
 
 export default async function UserDetailPage(
@@ -24,6 +26,10 @@ export default async function UserDetailPage(
   const t = dict.userDetail;
   const orgId = session?.organization_id ?? null;
   const adminInfo = getAdminHeaderInfo(session, lang);
+
+  if (session) {
+    logAccess({ adminId: session.admin_id, action: "view_user", resource: `user_id=${userId}`, headers: await headers() });
+  }
 
   const [user, actionLogs, orgName, alertCount] = await Promise.all([
     getUserById(userId, orgId),

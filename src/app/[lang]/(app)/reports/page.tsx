@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { ReportPrintButton } from "@/components/dashboard/ReportPrintButton";
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
+import { logAccess } from "@/lib/access-log";
+import { headers } from "next/headers";
 import { getMonthlyReport } from "@/lib/reports-data";
 import { getAlertCount } from "@/lib/dashboard-data";
 
@@ -24,6 +26,10 @@ export default async function ReportsPage(props: ReportsPageProps) {
   const orgId = session?.organization_id ?? null;
   const districtIds =
     session?.role === "social_worker" ? (session?.district_ids ?? []) : null;
+
+  if (session) {
+    logAccess({ adminId: session.admin_id, action: "view_reports", headers: await headers() });
+  }
 
   // Determine year/month from searchParams or default to current KST month
   const nowKst = new Date(Date.now() + 9 * 60 * 60 * 1000);
