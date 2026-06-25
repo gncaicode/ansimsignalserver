@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/brand/StatusBadge";
 import { LocaleSwitcher } from "@/components/i18n/LocaleSwitcher";
+import { InquiryForm } from "@/components/landing/InquiryForm";
 import { getDictionary, hasLocale, type Locale } from "@/lib/i18n";
 
 const FEATURE_ICONS = [HeartPulse, BellRing, PhoneCall, Users, ShieldCheck, Wallet];
@@ -277,13 +278,7 @@ export default async function LandingPage(props: PageProps<"/[lang]">) {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-7 text-sm">
-            <ul className="space-y-2.5 text-trust-100/90">
-              {t.cta.contactCard.items.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
+          <InquiryForm labels={t.cta.form} />
         </div>
       </section>
 
