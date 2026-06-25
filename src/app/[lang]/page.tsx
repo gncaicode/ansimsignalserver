@@ -274,13 +274,6 @@ export default async function LandingPage(props: PageProps<"/[lang]">) {
                 {t.cta.ctaPrimary}
                 <ArrowRight className="h-4 w-4" />
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="bg-white/10 border-white/30 text-white hover:bg-white/20"
-              >
-                {t.cta.ctaSecondary}
-              </Button>
             </div>
           </div>
 
