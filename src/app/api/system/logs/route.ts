@@ -28,12 +28,20 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const org = sp.get("org") ?? "";
   const action = sp.get("action") ?? "";
+  const actionGroup = sp.get("actionGroup") ?? "";
   const dateFrom = sp.get("dateFrom") ?? "";
   const dateTo = sp.get("dateTo") ?? "";
   const adminName = sp.get("adminName") ?? "";
   const page = Math.max(1, parseInt(sp.get("page") ?? "1", 10));
   const limit = 50;
   const offset = (page - 1) * limit;
+
+  const ACCESS_ACTIONS = [
+    "login_success", "login_fail", "logout",
+    "view_dashboard", "view_users", "view_user",
+    "view_managers", "view_reports", "view_settings",
+  ];
+  const PERSONAL_ACTIONS = ["create_user", "edit_user", "delete_user", "export_users"];
 
   const conditions: string[] = [];
   const params: (string | number)[] = [];
@@ -45,6 +53,12 @@ export async function GET(req: NextRequest) {
   if (action) {
     conditions.push("l.action = ?");
     params.push(action);
+  } else if (actionGroup === "access") {
+    conditions.push(`l.action IN (${ACCESS_ACTIONS.map(() => "?").join(",")})`);
+    params.push(...ACCESS_ACTIONS);
+  } else if (actionGroup === "personal") {
+    conditions.push(`l.action IN (${PERSONAL_ACTIONS.map(() => "?").join(",")})`);
+    params.push(...PERSONAL_ACTIONS);
   }
   if (dateFrom) {
     conditions.push("l.created_at >= ?");
