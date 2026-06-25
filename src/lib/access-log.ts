@@ -11,7 +11,11 @@ export type AccessAction =
   | "view_user"
   | "view_managers"
   | "view_reports"
-  | "view_settings";
+  | "view_settings"
+  | "create_user"
+  | "edit_user"
+  | "delete_user"
+  | "export_users";
 
 function extractIp(headers: NextRequest["headers"] | ReadonlyHeaders): string | null {
   return (

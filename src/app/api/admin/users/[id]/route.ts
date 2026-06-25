@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { execute, query } from "@/lib/db";
+import { logAccess } from "@/lib/access-log";
 import type { RowDataPacket } from "mysql2";
 
 interface UserRow extends RowDataPacket { admin_id: number | null; district_id: number | null; org_id: number | null; }
@@ -53,11 +54,13 @@ export async function PATCH(
     [name, age, district_id, address, emergency_phone, admin_id, userId],
   );
 
+  await logAccess({ adminId: session.admin_id, action: "edit_user", resource: `user_id=${userId}`, req });
+
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getSession();
@@ -77,6 +80,8 @@ export async function DELETE(
     "UPDATE users SET active_flag = 0, updated_at = NOW() WHERE user_id = ?",
     [userId],
   );
+
+  await logAccess({ adminId: session.admin_id, action: "delete_user", resource: `user_id=${userId}`, req });
 
   return NextResponse.json({ ok: true });
 }

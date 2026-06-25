@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { query } from "@/lib/db";
+import { logAccess } from "@/lib/access-log";
 import type { RowDataPacket } from "mysql2";
 import * as XLSX from "xlsx";
 
@@ -69,6 +70,8 @@ export async function GET(req: NextRequest) {
 
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
   const now = new Date().toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" }).replace(/\. /g, "-").replace(".", "");
+
+  await logAccess({ adminId: session.admin_id, action: "export_users", resource: `count=${rows.length}`, req });
 
   return new NextResponse(buf, {
     headers: {

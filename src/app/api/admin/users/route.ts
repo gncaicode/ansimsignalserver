@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { execute, query } from "@/lib/db";
+import { logAccess } from "@/lib/access-log";
 import type { RowDataPacket } from "mysql2";
 
 function generateCode(): string {
@@ -63,6 +64,8 @@ export async function POST(req: NextRequest) {
       // UNIQUE 충돌 시 재시도
     }
   }
+
+  await logAccess({ adminId: session.admin_id, action: "create_user", resource: `user_id=${insertId}`, req });
 
   return NextResponse.json({ user_id: insertId, invite_code: code }, { status: 201 });
 }
