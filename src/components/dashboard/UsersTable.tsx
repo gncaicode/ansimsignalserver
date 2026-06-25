@@ -355,6 +355,7 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
                 <Input id="e-phone" name="emergency_phone" inputMode="tel" placeholder={t.addModal.phonePlaceholder} value={form.emergency_phone} onChange={handle} />
               </div>
 
+              {/* 담당자 배정 비활성화 — 구역별 복지사 자동 연결로 대체
               <div>
                 <Label htmlFor="e-admin">{t.addModal.admin}</Label>
                 <select id="e-admin" name="admin_id" value={form.admin_id} onChange={handle}
@@ -363,6 +364,7 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
                   {admins.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
+              */}
 
               {editing.register_flag === 1 ? (
                 <div className="rounded-lg bg-surface-muted px-4 py-3 text-xs text-muted">

@@ -27,15 +27,16 @@ export default async function DashboardPage(
   const [dict, session] = await Promise.all([getDictionary(lang), getSession()]);
   const t = dict.dashboard;
   const orgId = session?.organization_id ?? null;
+  const districtIds = session?.role === "social_worker" ? (session?.district_ids ?? []) : null;
 
   const [stats, criticalUsers, districtBreakdown, activityLog, orgName, alertCount] =
     await Promise.all([
-      getDashboardStats(orgId),
-      getCriticalUsers(orgId),
-      getDistrictBreakdown(orgId),
-      getActivityLog(orgId),
+      getDashboardStats(orgId, districtIds),
+      getCriticalUsers(orgId, districtIds),
+      getDistrictBreakdown(orgId, districtIds),
+      getActivityLog(orgId, districtIds),
       getOrgName(orgId),
-      getAlertCount(orgId),
+      getAlertCount(orgId, districtIds),
     ]);
 
   const today = formatLongDateTime(new Date(), lang);

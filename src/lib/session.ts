@@ -10,6 +10,7 @@ export interface AdminSession {
   email: string;
   role: "superadmin" | "admin" | "social_worker" | "viewer";
   organization_id: number | null;
+  district_ids: number[];
 }
 
 export async function createSession(payload: AdminSession): Promise<string> {

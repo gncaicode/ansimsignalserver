@@ -50,12 +50,7 @@ export function AppSidebar({
     { href: `${base}/dashboard`, label: labels.dashboard, icon: LayoutDashboard },
     { href: `${base}/users`, label: labels.users, icon: Users },
     ...(canManage ? [{ href: `${base}/managers`, label: labels.managers, icon: ShieldCheck }] : []),
-    {
-      href: `${base}/dashboard`,
-      label: labels.reports,
-      icon: FileBarChart2,
-      disabled: true,
-    },
+    { href: `${base}/reports`, label: labels.reports, icon: FileBarChart2 },
   ];
 
   return (
@@ -71,28 +66,21 @@ export function AppSidebar({
           {locale === "ja" ? "業務メニュー" : "업무 메뉴"}
         </p>
         {NAV.map((item) => {
-          const active = pathname === item.href && !item.disabled;
+          const active = pathname === item.href;
           const Icon = item.icon;
           return (
             <Link
               key={item.label}
-              href={item.disabled ? "#" : item.href}
-              aria-disabled={item.disabled}
+              href={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                 active
                   ? "bg-trust-50 text-trust-700"
                   : "text-foreground hover:bg-surface-muted",
-                item.disabled && "opacity-40 pointer-events-none",
               )}
             >
               <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
               <span>{item.label}</span>
-              {item.disabled && (
-                <span className="ml-auto text-[10px] text-subtle">
-                  {labels.comingSoon}
-                </span>
-              )}
             </Link>
           );
         })}

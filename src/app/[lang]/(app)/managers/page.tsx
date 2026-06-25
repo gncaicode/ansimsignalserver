@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
-import { getAdmins, getOrgName, getAlertCount } from "@/lib/dashboard-data";
+import { getAdmins, getOrgName, getAlertCount, getDistrictOptions } from "@/lib/dashboard-data";
 import { ManagerActionsCell } from "@/components/dashboard/ManagerActionsCell";
 import type { ManagerRole } from "@/lib/types";
 
@@ -32,10 +32,11 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
   const adminInfo = getAdminHeaderInfo(session, lang);
   const canEdit = session?.role === "superadmin" || session?.role === "admin";
 
-  const [managers, orgName, alertCount] = await Promise.all([
+  const [managers, orgName, alertCount, districtOptions] = await Promise.all([
     getAdmins(orgId),
     getOrgName(orgId),
     getAlertCount(orgId),
+    getDistrictOptions(orgId),
   ]);
 
   const roleOptions = [
@@ -95,6 +96,7 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
                   <TableHead className="w-[100px]">{t.columns.position}</TableHead>
                   <TableHead>{t.columns.contact}</TableHead>
                   <TableHead className="w-[140px]">{t.columns.role}</TableHead>
+                  <TableHead className="w-[120px]">담당구역</TableHead>
                   <TableHead className="w-[150px]">{t.columns.joinedAt}</TableHead>
                   <TableHead className="w-[100px]">{t.columns.actions}</TableHead>
                 </TableRow>
@@ -102,7 +104,7 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
               <TableBody>
                 {managers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-12 text-center text-muted">
+                    <TableCell colSpan={8} className="py-12 text-center text-muted">
                       {t.empty}
                     </TableCell>
                   </TableRow>
@@ -133,6 +135,13 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
                         </TableCell>
                         <TableCell>
                           <span className="text-sm text-muted">
+                            {m.dbRole === "social_worker"
+                              ? (m.district_names ?? "—")
+                              : <span className="text-subtle text-xs">전체</span>}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted">
                             {m.joined_at ? m.joined_at.toString().slice(0, 10) : "—"}
                           </span>
                         </TableCell>
@@ -145,12 +154,15 @@ export default async function ManagersPage(props: PageProps<"/[lang]/managers">)
                               position={m.position ?? ""}
                               department={m.department ?? ""}
                               currentDbRole={m.dbRole}
+                              currentDistrictIds={m.district_ids}
+                              districtOptions={districtOptions}
                               roles={roleOptions}
                               t={{
                                 actions: t.actions,
                                 changeRoleModal: t.changeRoleModal,
                                 editModal: t.editModal,
                                 deleteConfirm: t.deleteConfirm,
+                                districtModal: t.districtModal,
                               }}
                             />
                           )}

@@ -58,6 +58,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ success: true });
     }
 
+    if (type === "district") {
+      if (target.role !== "social_worker") {
+        return NextResponse.json({ error: "복지사에게만 구역을 배정할 수 있습니다." }, { status: 400 });
+      }
+      const rawIds = Array.isArray(body.district_ids) ? body.district_ids : [];
+      const districtIds: number[] = rawIds.map(Number).filter((n: number) => !isNaN(n) && n > 0);
+      await execute("DELETE FROM admin_districts WHERE admin_id = ?", [adminId]);
+      for (const did of districtIds) {
+        await execute("INSERT INTO admin_districts (admin_id, district_id) VALUES (?, ?)", [adminId, did]);
+      }
+      return NextResponse.json({ success: true });
+    }
+
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   } catch (err) {
     console.error("[PATCH /api/admin/managers/[id]]", err);

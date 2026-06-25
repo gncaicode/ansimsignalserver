@@ -10,7 +10,7 @@ function generateCode(): string {
   return code;
 }
 
-interface UserRow extends RowDataPacket { user_id: number; }
+interface UserRow extends RowDataPacket { user_id: number; org_id: number | null; }
 
 export async function POST(
   req: NextRequest,
@@ -27,13 +27,19 @@ export async function POST(
     const userId = Number(id);
     if (!userId) return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
 
-    // 대상자 존재 확인
+    // 대상자 존재 및 기관 소속 확인
     const { rows } = await query<UserRow>(
-      "SELECT user_id FROM users WHERE user_id = ?",
+      `SELECT u.user_id, d.org_id FROM users u
+       LEFT JOIN districts d ON u.district_id = d.dist_id
+       WHERE u.user_id = ? AND u.active_flag = 1`,
       [userId]
     );
     if (rows.length === 0) {
       return NextResponse.json({ error: "대상자를 찾을 수 없습니다." }, { status: 404 });
+    }
+    const orgId = session.organization_id ?? null;
+    if (orgId !== null && rows[0].org_id !== orgId) {
+      return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
     // 기존 초대코드 삭제

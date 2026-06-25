@@ -15,6 +15,8 @@ interface AdminRow extends RowDataPacket {
   withdraw_flag: number;
 }
 
+interface DistrictRow extends RowDataPacket { district_id: number; }
+
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json();
 
@@ -46,12 +48,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "이메일 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
   }
 
+  const { rows: districtRows } = await query<DistrictRow>(
+    "SELECT district_id FROM admin_districts WHERE admin_id = ?",
+    [admin.admin_id],
+  );
+  const district_ids = districtRows.map((r) => r.district_id);
+
   const token = await createSession({
     admin_id: admin.admin_id,
     name: admin.name,
     email: admin.email,
     role: admin.role,
     organization_id: admin.organization_id,
+    district_ids,
   });
 
   const res = NextResponse.json({ ok: true });

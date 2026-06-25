@@ -3,7 +3,19 @@ import { getSession } from "@/lib/session";
 import { execute, query } from "@/lib/db";
 import type { RowDataPacket } from "mysql2";
 
-interface UserRow extends RowDataPacket { admin_id: number | null; district_id: number | null; }
+interface UserRow extends RowDataPacket { admin_id: number | null; district_id: number | null; org_id: number | null; }
+
+async function checkUserOrg(userId: number, orgId: number | null): Promise<boolean> {
+  const { rows } = await query<UserRow>(
+    `SELECT d.org_id FROM users u
+     LEFT JOIN districts d ON u.district_id = d.dist_id
+     WHERE u.user_id = ? AND u.active_flag = 1`,
+    [userId],
+  );
+  if (rows.length === 0) return false;
+  if (orgId === null) return true; // superadmin: 전체 접근
+  return rows[0].org_id === orgId;
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -17,6 +29,10 @@ export async function PATCH(
 
   const { id } = await params;
   const userId = Number(id);
+
+  if (!(await checkUserOrg(userId, session.organization_id ?? null))) {
+    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  }
 
   const body = await req.json();
   const name            = String(body.name            ?? "").trim();
@@ -46,14 +62,20 @@ export async function DELETE(
 ) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  if (!["superadmin", "admin"].includes(session.role)) {
+  if (!["superadmin", "admin", "social_worker"].includes(session.role)) {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
 
   const { id } = await params;
+  const userId = Number(id);
+
+  if (!(await checkUserOrg(userId, session.organization_id ?? null))) {
+    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  }
+
   await execute(
     "UPDATE users SET active_flag = 0, updated_at = NOW() WHERE user_id = ?",
-    [Number(id)],
+    [userId],
   );
 
   return NextResponse.json({ ok: true });

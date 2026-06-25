@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 interface RoleOption { value: string; label: string; }
+interface DistrictOption { id: number; name: string; }
 
 interface T {
   actions: {
@@ -13,6 +14,7 @@ interface T {
     moreA11y: string;
     editInfo: string;
     delete: string;
+    assignDistrict: string;
   };
   changeRoleModal: {
     title: string;
@@ -44,6 +46,15 @@ interface T {
     cancel: string;
     errorServer: string;
   };
+  districtModal: {
+    title: string;
+    label: string;
+    placeholder: string;
+    save: string;
+    saving: string;
+    cancel: string;
+    errorServer: string;
+  };
 }
 
 interface Props {
@@ -53,19 +64,23 @@ interface Props {
   position: string;
   department: string;
   currentDbRole: string;
+  currentDistrictIds: number[];
   roles: RoleOption[];
+  districtOptions: DistrictOption[];
   t: T;
 }
 
 export function ManagerActionsCell({
-  adminId, name, phone, position, department, currentDbRole, roles, t,
+  adminId, name, phone, position, department, currentDbRole, currentDistrictIds, roles, districtOptions, t,
 }: Props) {
   const [dropOpen, setDropOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [districtOpen, setDistrictOpen] = useState(false);
 
   const [selectedRole, setSelectedRole] = useState(currentDbRole);
+  const [selectedDistrictIds, setSelectedDistrictIds] = useState<number[]>(currentDistrictIds);
   const [editForm, setEditForm] = useState({ name, phone, position, department });
 
   const [loading, setLoading] = useState(false);
@@ -131,9 +146,21 @@ export function ManagerActionsCell({
     } finally { setLoading(false); }
   }
 
+  async function submitDistrict() {
+    setError(""); setLoading(true);
+    try {
+      await callApi("PATCH", { type: "district", district_ids: selectedDistrictIds });
+      setDistrictOpen(false);
+      window.location.reload();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : t.districtModal.errorServer);
+    } finally { setLoading(false); }
+  }
+
   function openRole() { setSelectedRole(currentDbRole); setError(""); setRoleOpen(true); }
   function openEdit() { setEditForm({ name, phone, position, department }); setError(""); setEditOpen(true); setDropOpen(false); }
   function openDelete() { setError(""); setDeleteOpen(true); setDropOpen(false); }
+  function openDistrict() { setSelectedDistrictIds(currentDistrictIds); setError(""); setDistrictOpen(true); setDropOpen(false); }
 
   return (
     <>
@@ -162,12 +189,17 @@ export function ManagerActionsCell({
           </Button>
           {dropOpen && (
             <div
-              className="fixed z-50 w-32 rounded-lg border border-border bg-white shadow-lg py-1 text-sm"
+              className="fixed z-50 w-36 rounded-lg border border-border bg-white shadow-lg py-1 text-sm"
               style={{ top: dropPos.top, right: dropPos.right }}
             >
               <button className="w-full px-3 py-2 text-left hover:bg-gray-50" onClick={openEdit}>
                 {t.actions.editInfo}
               </button>
+              {currentDbRole === "social_worker" && (
+                <button className="w-full px-3 py-2 text-left hover:bg-gray-50" onClick={openDistrict}>
+                  {t.actions.assignDistrict}
+                </button>
+              )}
               <button className="w-full px-3 py-2 text-left text-red-600 hover:bg-red-50" onClick={openDelete}>
                 {t.actions.delete}
               </button>
@@ -254,6 +286,45 @@ export function ManagerActionsCell({
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               {loading ? t.deleteConfirm.deleting : t.deleteConfirm.confirm}
+            </Button>
+          </div>
+        </Modal>
+      )}
+      {/* 구역 배정 모달 */}
+      {districtOpen && (
+        <Modal onClose={() => setDistrictOpen(false)}>
+          <h2 className="text-lg font-bold mb-4">{t.districtModal.title} — {name}</h2>
+          <p className="text-xs text-muted mb-3">{t.districtModal.label}</p>
+          <div className="space-y-2 max-h-60 overflow-y-auto border border-border rounded-lg p-3">
+            {districtOptions.length === 0 && (
+              <p className="text-sm text-muted text-center py-2">{t.districtModal.placeholder}</p>
+            )}
+            {districtOptions.map((d) => {
+              const checked = selectedDistrictIds.includes(d.id);
+              return (
+                <label key={d.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-1 py-1">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() =>
+                      setSelectedDistrictIds((prev) =>
+                        checked ? prev.filter((id) => id !== d.id) : [...prev, d.id]
+                      )
+                    }
+                    className="h-4 w-4 rounded border-gray-300 text-trust-700 focus:ring-trust-500"
+                  />
+                  <span className="text-sm">{d.name}</span>
+                </label>
+              );
+            })}
+          </div>
+          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setDistrictOpen(false)} disabled={loading}>
+              {t.districtModal.cancel}
+            </Button>
+            <Button onClick={submitDistrict} disabled={loading}>
+              {loading ? t.districtModal.saving : t.districtModal.save}
             </Button>
           </div>
         </Modal>

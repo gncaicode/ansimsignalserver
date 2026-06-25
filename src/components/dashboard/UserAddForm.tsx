@@ -152,6 +152,7 @@ export function UserAddForm({
               <Input id="emergency_phone" name="emergency_phone" inputMode="tel" placeholder={t.phonePlaceholder} value={form.emergency_phone} onChange={handle} />
             </div>
 
+            {/* 담당자 배정 비활성화 — 구역별 복지사 자동 연결로 대체
             <div>
               <Label htmlFor="admin_id">{t.admin}</Label>
               <select id="admin_id" name="admin_id" value={form.admin_id} onChange={handle} className={selectCls}>
@@ -159,6 +160,7 @@ export function UserAddForm({
                 {admins.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
+            */}
 
             {error && <p className="text-sm text-red-600">{error}</p>}
 

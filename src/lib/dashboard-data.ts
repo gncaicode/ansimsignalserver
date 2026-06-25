@@ -20,6 +20,18 @@ function calcSignalStatus(lastCheckinAt: string | null, intervalHours: number): 
 // KST 현재 시각 SQL 표현 — MySQL 서버가 KST이므로 NOW() 그대로 사용
 const NOW_KST = 'NOW()';
 
+// 복지사 구역 필터 헬퍼
+// districtIds가 배열이면 복지사 필터(IN 절), null이면 orgId 기준
+function districtFilter(districtIds: number[] | null | undefined, orgId: number | null) {
+  if (districtIds != null) {
+    if (districtIds.length === 0) return { cond: "AND 1=0", params: [] as (number | string | null)[] };
+    const ph = districtIds.map(() => "?").join(",");
+    return { cond: `AND u.district_id IN (${ph})`, params: districtIds as (number | string | null)[] };
+  }
+  if (orgId) return { cond: "AND d.org_id = ?", params: [orgId] as (number | string | null)[] };
+  return { cond: "", params: [] as (number | string | null)[] };
+}
+
 // 동적 위급·주의 판단 SQL 조건 (DB status 컬럼 미사용)
 const DYNAMIC_CRITICAL_COND = `
   u.last_checkin_at IS NOT NULL AND (
@@ -36,7 +48,9 @@ interface StatsRow extends RowDataPacket {
   safe: number;
 }
 
-export async function getDashboardStats(orgId: number | null) {
+export async function getDashboardStats(orgId: number | null, districtIds?: number[] | null) {
+  const f = districtFilter(districtIds, orgId);
+  const filterJoin = (districtIds != null) ? "" : orgId ? "LEFT JOIN districts d ON u.district_id = d.dist_id" : "";
   const { rows } = await query<StatsRow>(
     `SELECT
        COUNT(*) AS total,
@@ -50,8 +64,9 @@ export async function getDashboardStats(orgId: number | null) {
                          AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 3.0)
                 THEN 1 ELSE 0 END) AS safe
      FROM users u
-     ${orgId ? "LEFT JOIN districts d ON u.district_id = d.dist_id WHERE u.active_flag = 1 AND d.org_id = ?" : "WHERE u.active_flag = 1"}`,
-    orgId ? [orgId] : []
+     ${filterJoin}
+     WHERE u.active_flag = 1 ${f.cond}`,
+    f.params
   );
   const r = rows[0];
   return {
@@ -77,7 +92,8 @@ interface UserRow extends RowDataPacket {
   admin_name: string | null;
 }
 
-export async function getCriticalUsers(orgId: number | null): Promise<Subject[]> {
+export async function getCriticalUsers(orgId: number | null, districtIds?: number[] | null): Promise<Subject[]> {
+  const f = districtFilter(districtIds, orgId);
   const { rows } = await query<UserRow>(
     `SELECT
        u.user_id, u.name, u.age, u.address, u.emergency_phone,
@@ -89,12 +105,12 @@ export async function getCriticalUsers(orgId: number | null): Promise<Subject[]>
      LEFT JOIN admins    a ON u.admin_id    = a.admin_id
      WHERE u.active_flag = 1
        AND (${DYNAMIC_CRITICAL_COND})
-       ${orgId ? "AND d.org_id = ?" : ""}
+       ${f.cond}
      ORDER BY
        CASE WHEN ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 0 ELSE 1 END,
        u.last_checkin_at ASC
      LIMIT 20`,
-    orgId ? [orgId] : []
+    f.params
   );
 
   return rows.map((u) => {
@@ -127,7 +143,8 @@ interface DistrictRow extends RowDataPacket {
   warn: number;
 }
 
-export async function getDistrictBreakdown(orgId: number | null) {
+export async function getDistrictBreakdown(orgId: number | null, districtIds?: number[] | null) {
+  const f = districtFilter(districtIds, orgId);
   const { rows } = await query<DistrictRow>(
     `SELECT
        d.name,
@@ -140,10 +157,10 @@ export async function getDistrictBreakdown(orgId: number | null) {
      FROM users u
      JOIN districts d ON u.district_id = d.dist_id
      WHERE u.active_flag = 1
-       ${orgId ? "AND d.org_id = ?" : ""}
+       ${f.cond}
      GROUP BY d.dist_id, d.name
      ORDER BY total DESC`,
-    orgId ? [orgId] : []
+    f.params
   );
 
   return rows.map((r) => {
@@ -167,7 +184,8 @@ interface LogRow extends RowDataPacket {
   admin_name: string | null;
 }
 
-export async function getActivityLog(orgId: number | null): Promise<ActivityLogEntry[]> {
+export async function getActivityLog(orgId: number | null, districtIds?: number[] | null): Promise<ActivityLogEntry[]> {
+  const f = districtFilter(districtIds, orgId);
   const { rows } = await query<LogRow>(
     `SELECT
        u.user_id, u.name, u.last_checkin_at, u.alert_sent_at, u.interval_hours,
@@ -178,13 +196,13 @@ export async function getActivityLog(orgId: number | null): Promise<ActivityLogE
      LEFT JOIN admins    a ON u.admin_id    = a.admin_id
      WHERE u.active_flag = 1
        AND (u.last_checkin_at IS NOT NULL OR u.alert_sent_at IS NOT NULL)
-       ${orgId ? "AND d.org_id = ?" : ""}
+       ${f.cond}
      ORDER BY GREATEST(
        COALESCE(u.last_checkin_at, '1970-01-01'),
        COALESCE(u.alert_sent_at,  '1970-01-01')
      ) DESC
      LIMIT 15`,
-    orgId ? [orgId] : []
+    f.params
   );
 
   const entries: ActivityLogEntry[] = [];
@@ -235,15 +253,17 @@ export async function getOrgName(orgId: number | null): Promise<string> {
 
 interface AlertCountRow extends RowDataPacket { cnt: number; }
 
-export async function getAlertCount(orgId: number | null): Promise<number> {
-  if (!orgId) return 0;
+export async function getAlertCount(orgId: number | null, districtIds?: number[] | null): Promise<number> {
+  if (!orgId && (districtIds == null || districtIds.length === 0)) return 0;
+  const f = districtFilter(districtIds, orgId);
   const { rows } = await query<AlertCountRow>(
     `SELECT COUNT(*) AS cnt
      FROM users u
      JOIN districts d ON u.district_id = d.dist_id
-     WHERE d.org_id = ? AND u.active_flag = 1
+     WHERE u.active_flag = 1
+       ${f.cond}
        AND (${DYNAMIC_CRITICAL_COND})`,
-    [orgId]
+    f.params
   );
   return rows[0]?.cnt ?? 0;
 }
@@ -285,6 +305,7 @@ export async function getUsers(
   page = 1,
   pageSize = 20,
   q?: string,
+  districtIds?: number[] | null,
 ): Promise<{ users: UserListItem[]; total: number }> {
   const offset = (page - 1) * pageSize;
   const statusCond = statusFilter && statusFilter !== "all"
@@ -294,20 +315,18 @@ export async function getUsers(
         ? `AND u.last_checkin_at IS NOT NULL AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0`
         : `AND (u.last_checkin_at IS NULL OR (${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 3.0))`
     : "";
-  const orgCond = orgId ? "AND d.org_id = ?" : "";
-  const searchCond = q ? "AND (u.name LIKE ? OR u.address LIKE ? OR a.name LIKE ?)" : "";
+  const f = districtFilter(districtIds, orgId);
+  const searchCond = q ? "AND (u.name LIKE ? OR u.address LIKE ?)" : "";
   const likeVal = q ? `%${q}%` : null;
 
-  const params: (string | number)[] = [];
-  if (orgId) params.push(orgId);
-  if (likeVal) params.push(likeVal, likeVal, likeVal);
+  const params: (string | number | null)[] = [...f.params];
+  if (likeVal) params.push(likeVal, likeVal);
 
   const { rows: countRows } = await query<RowDataPacket & { total: number }>(
     `SELECT COUNT(*) AS total
      FROM users u
      LEFT JOIN districts d ON u.district_id = d.dist_id
-     LEFT JOIN admins    a ON u.admin_id    = a.admin_id
-     WHERE u.active_flag = 1 ${statusCond} ${orgCond} ${searchCond}`,
+     WHERE u.active_flag = 1 ${statusCond} ${f.cond} ${searchCond}`,
     params,
   );
   const total = Number(countRows[0]?.total ?? 0);
@@ -317,13 +336,20 @@ export async function getUsers(
        u.user_id, u.name, u.age, u.address, u.emergency_phone,
        u.last_checkin_at, u.status, u.interval_hours, u.register_flag,
        d.name AS district_name,
-       a.name AS admin_name,
+       GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') AS admin_name,
        ic.code AS invite_code
      FROM users u
-     LEFT JOIN districts    d  ON u.district_id = d.dist_id
-     LEFT JOIN admins       a  ON u.admin_id    = a.admin_id
-     LEFT JOIN invite_codes ic ON ic.user_id    = u.user_id AND ic.used = 0
-     WHERE u.active_flag = 1 ${statusCond} ${orgCond} ${searchCond}
+     LEFT JOIN districts      d  ON u.district_id  = d.dist_id
+     LEFT JOIN admin_districts ad ON u.district_id  = ad.district_id
+     LEFT JOIN admins          a  ON ad.admin_id    = a.admin_id
+                                  AND a.role = 'social_worker'
+                                  AND a.active_flag = 1
+                                  AND a.withdraw_flag = 0
+     LEFT JOIN invite_codes   ic ON ic.user_id      = u.user_id AND ic.used = 0
+     WHERE u.active_flag = 1 ${statusCond} ${f.cond} ${searchCond}
+     GROUP BY u.user_id, u.name, u.age, u.address, u.emergency_phone,
+              u.last_checkin_at, u.status, u.interval_hours, u.register_flag,
+              d.name, ic.code
      ORDER BY
        CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 0
             WHEN u.last_checkin_at IS NOT NULL AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0 THEN 1
@@ -434,13 +460,25 @@ export async function getDistrictOptions(orgId: number | null) {
   return rows;
 }
 
-export async function getAdminOptions(orgId: number | null) {
+interface AdminOptionRow extends RowDataPacket { id: number; name: string; district_ids_str: string | null; }
+
+export async function getAdminOptions(orgId: number | null): Promise<{ id: number; name: string; district_ids: number[] }[]> {
   if (!orgId) return [];
-  const { rows } = await query<SimpleRow>(
-    "SELECT admin_id AS id, name FROM admins WHERE organization_id = ? AND active_flag = 1 AND withdraw_flag = 0 ORDER BY name",
+  const { rows } = await query<AdminOptionRow>(
+    `SELECT a.admin_id AS id, a.name,
+       GROUP_CONCAT(ad.district_id ORDER BY ad.district_id SEPARATOR ',') AS district_ids_str
+     FROM admins a
+     LEFT JOIN admin_districts ad ON a.admin_id = ad.admin_id
+     WHERE a.organization_id = ? AND a.active_flag = 1 AND a.withdraw_flag = 0 AND a.role != 'superadmin'
+     GROUP BY a.admin_id, a.name
+     ORDER BY a.name`,
     [orgId],
   );
-  return rows;
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    district_ids: r.district_ids_str ? r.district_ids_str.split(",").map(Number) : [],
+  }));
 }
 
 /* ───────── 운영자 목록 ───────── */
@@ -470,6 +508,8 @@ export interface AdminListItem {
   approvalStatus: ApprovalStatus;
   org_name: string | null;
   joined_at: string | null;
+  district_ids: number[];
+  district_names: string | null;
 }
 
 interface AdminListRow extends RowDataPacket {
@@ -484,6 +524,8 @@ interface AdminListRow extends RowDataPacket {
   withdraw_flag: number;
   org_name: string | null;
   joined_at: string | null;
+  district_ids_str: string | null;
+  district_names: string | null;
 }
 
 export async function getAdmins(orgId: number | null): Promise<AdminListItem[]> {
@@ -491,27 +533,35 @@ export async function getAdmins(orgId: number | null): Promise<AdminListItem[]> 
     `SELECT
        a.admin_id, a.name, a.email, a.phone, a.position, a.department,
        a.role, a.active_flag, a.withdraw_flag, a.joined_at,
-       o.name AS org_name
+       o.name AS org_name,
+       GROUP_CONCAT(ad.district_id ORDER BY d.name SEPARATOR ',') AS district_ids_str,
+       GROUP_CONCAT(d.name         ORDER BY d.name SEPARATOR ', ') AS district_names
      FROM admins a
-     LEFT JOIN organizations o ON a.organization_id = o.org_id
+     LEFT JOIN organizations  o  ON a.organization_id = o.org_id
+     LEFT JOIN admin_districts ad ON a.admin_id = ad.admin_id
+     LEFT JOIN districts       d  ON ad.district_id = d.dist_id
      WHERE a.withdraw_flag = 0
        AND a.role != 'superadmin'
        ${orgId ? "AND a.organization_id = ?" : ""}
+     GROUP BY a.admin_id, a.name, a.email, a.phone, a.position, a.department,
+              a.role, a.active_flag, a.withdraw_flag, a.joined_at, o.name
      ORDER BY FIELD(a.role,'admin','social_worker','viewer'), a.joined_at DESC`,
     orgId ? [orgId] : [],
   );
 
   return rows.map((r) => ({
-    admin_id:      r.admin_id,
-    name:          r.name,
-    email:         r.email,
-    phone:         r.phone,
-    position:      r.position,
-    department:    r.department,
-    role:          ROLE_MAP[r.role] ?? "viewer",
-    dbRole:        r.role,
+    admin_id:       r.admin_id,
+    name:           r.name,
+    email:          r.email,
+    phone:          r.phone,
+    position:       r.position,
+    department:     r.department,
+    role:           ROLE_MAP[r.role] ?? "viewer",
+    dbRole:         r.role,
     approvalStatus: toApprovalStatus(r.active_flag, r.withdraw_flag),
-    org_name:      r.org_name,
-    joined_at:     r.joined_at,
+    org_name:       r.org_name,
+    joined_at:      r.joined_at,
+    district_ids:   r.district_ids_str ? r.district_ids_str.split(",").map(Number) : [],
+    district_names: r.district_names ?? null,
   }));
 }

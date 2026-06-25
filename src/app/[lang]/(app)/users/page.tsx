@@ -25,15 +25,16 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
   const [dict, session] = await Promise.all([getDictionary(lang), getSession()]);
   const t = dict.users;
   const orgId = session?.organization_id ?? null;
+  const districtIds = session?.role === "social_worker" ? (session?.district_ids ?? []) : null;
 
   const adminInfo = getAdminHeaderInfo(session, lang);
 
   const [{ users, total }, orgName, districtOptions, adminOptions, alertCount] = await Promise.all([
-    getUsers(orgId, statusFilter, page, PAGE_SIZE, q || undefined),
+    getUsers(orgId, statusFilter, page, PAGE_SIZE, q || undefined, districtIds),
     getOrgName(orgId),
     getDistrictOptions(orgId),
     getAdminOptions(orgId),
-    getAlertCount(orgId),
+    getAlertCount(orgId, districtIds),
   ]);
 
   const dangerCount = users.filter((u) => u.status === "danger").length;
