@@ -86,10 +86,11 @@ function InviteCodeCell({ code, copyCode, copied: copiedLabel }: { code: string;
   return (
     <button
       onClick={copy}
-      className="mt-0.5 flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-trust-700 bg-trust-50 hover:bg-trust-100 transition-colors"
+      title={copyCode}
+      className="mt-0.5 flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-mono font-medium text-trust-700 bg-trust-50 hover:bg-trust-100 transition-colors"
     >
-      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-      {copied ? copiedLabel : copyCode}
+      {copied ? <Check className="h-3 w-3 shrink-0" /> : <Copy className="h-3 w-3 shrink-0" />}
+      <span>{copied ? copiedLabel : code}</span>
     </button>
   );
 }
@@ -101,6 +102,7 @@ function ReinviteButton({
 }) {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [newCode, setNewCode] = useState<string | null>(null);
 
   async function handleReinvite() {
     setLoading(true);
@@ -108,6 +110,7 @@ function ReinviteButton({
       const res = await fetch(`/api/admin/users/${userId}/reinvite`, { method: "POST" });
       const data = await res.json();
       if (!res.ok || !data.code) return;
+      setNewCode(data.code);
       copyToClipboard(data.code, () => {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
@@ -115,6 +118,22 @@ function ReinviteButton({
     } finally {
       setLoading(false);
     }
+  }
+
+  if (newCode) {
+    return (
+      <div className="mt-0.5 flex items-center gap-1.5">
+        <span className="font-mono text-xs font-semibold text-trust-700 tracking-wider">{newCode}</span>
+        <button
+          type="button"
+          onClick={() => copyToClipboard(newCode, () => { setCopied(true); setTimeout(() => setCopied(false), 1500); })}
+          className="flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-medium text-trust-700 bg-trust-50 hover:bg-trust-100 transition-colors"
+        >
+          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          {copied ? copiedLabel : copyCode}
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -138,12 +157,15 @@ function ModalInviteCodeButton({ code, copyCode, copied: copiedLabel }: { code: 
     });
   }
   return (
-    <div className="rounded-lg bg-surface-muted px-4 py-3 flex items-center justify-between">
-      <p className="text-xs text-muted">{copyCode}</p>
+    <div className="rounded-lg bg-surface-muted px-4 py-3 flex items-center justify-between gap-3">
+      <div>
+        <p className="text-[11px] text-muted mb-0.5">{copyCode}</p>
+        <p className="font-mono text-sm font-semibold text-trust-700 tracking-wider">{code}</p>
+      </div>
       <button
         type="button"
         onClick={copy}
-        className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium text-trust-700 bg-trust-50 hover:bg-trust-100 transition-colors"
+        className="shrink-0 flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium text-trust-700 bg-trust-50 hover:bg-trust-100 transition-colors"
       >
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         {copied ? copiedLabel : copyCode}
@@ -274,7 +296,11 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
                 </TableCell>
                 <TableCell>
                   {u.admin_name
-                    ? <Badge tone="trust">{u.admin_name}</Badge>
+                    ? <div className="flex flex-col gap-0.5 items-center">
+                        {u.admin_name.split(',').map((n) => (
+                          <Badge key={n.trim()} tone="trust" className="justify-center w-full">{n.trim()}</Badge>
+                        ))}
+                      </div>
                     : <span className="text-xs text-muted">{common.unassigned}</span>
                   }
                 </TableCell>
