@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatShortDateTime } from "@/lib/i18n/format";
+import type { Locale } from "@/lib/i18n";
 
 interface ActionLog {
   log_id: number;
@@ -34,9 +36,10 @@ interface Props {
   btnLabel: string;
   btnA11y: string;
   t: ActionModalT;
+  locale: Locale;
 }
 
-export function ActionRecordButton({ userId, userName, btnLabel, btnA11y, t }: Props) {
+export function ActionRecordButton({ userId, userName, btnLabel, btnA11y, t, locale }: Props) {
   const [open, setOpen] = useState(false);
   const [actionType, setActionType] = useState("visit");
   const [note, setNote] = useState("");
@@ -56,13 +59,13 @@ export function ActionRecordButton({ userId, userName, btnLabel, btnA11y, t }: P
     finally { setHistoryLoading(false); }
   }
 
-  function openModal() {
+  async function openModal() {
     setActionType("visit");
     setNote("");
     setError("");
     setSuccess(false);
     setOpen(true);
-    fetchHistory();
+    await fetchHistory();
   }
 
   async function submit() {
@@ -77,7 +80,7 @@ export function ActionRecordButton({ userId, userName, btnLabel, btnA11y, t }: P
       if (!res.ok) { setError(data.error || t.errorServer); return; }
       setSuccess(true);
       setNote("");
-      fetchHistory();
+      await fetchHistory();
     } catch { setError(t.errorServer); }
     finally { setLoading(false); }
   }
@@ -159,7 +162,7 @@ export function ActionRecordButton({ userId, userName, btnLabel, btnA11y, t }: P
                         )}
                       </div>
                       <p className="mt-0.5 text-xs text-subtle">
-                        {log.created_at.slice(0, 16).replace("T", " ")}
+                        {formatShortDateTime(log.created_at.replace(" ", "T") + "+09:00", locale)}
                         {log.admin_name ? ` · ${t.actor}: ${log.admin_name}` : ""}
                       </p>
                     </li>

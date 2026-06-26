@@ -75,7 +75,7 @@ export function SummaryCards({
   districtBreakdown: { name: string; total: number }[];
   labels: SummaryLabels;
 }) {
-  const connected = total - pending;
+  const connected = Math.max(0, total - pending);
   const items = [
     {
       label: labels.totalLabel,

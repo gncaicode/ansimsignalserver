@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
      LEFT JOIN districts d ON u.district_id = d.dist_id
      LEFT JOIN admins    a ON u.admin_id    = a.admin_id
      WHERE u.active_flag = 1 ${orgCond}
-     ORDER BY FIELD(u.status,'danger','warning','safe'), u.last_checkin_at ASC`,
+     ORDER BY FIELD(u.status,'danger','warn','safe'), u.last_checkin_at ASC`,
     params,
   );
 

@@ -37,7 +37,7 @@ function districtFilter(districtIds: number[] | null | undefined, orgId: number 
 // 동적 위급·주의 판단 SQL 조건 (DB status 컬럼 미사용)
 // 위급: 기간 초과, 주의: 0 <= 남은시간 < interval/12
 const DYNAMIC_CRITICAL_COND = `
-  u.last_checkin_at IS NOT NULL AND (
+  u.register_flag = 1 AND u.last_checkin_at IS NOT NULL AND (
     ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
     OR TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
   )
@@ -146,6 +146,7 @@ export async function getCriticalUsers(orgId: number | null, districtIds?: numbe
 interface DistrictRow extends RowDataPacket {
   name: string;
   total: number;
+  pending: number;
   danger: number;
   warn: number;
 }
@@ -156,8 +157,9 @@ export async function getDistrictBreakdown(orgId: number | null, districtIds?: n
     `SELECT
        d.name,
        COUNT(*) AS total,
-       SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
-       SUM(CASE WHEN u.last_checkin_at IS NOT NULL
+       SUM(CASE WHEN u.register_flag = 0 THEN 1 ELSE 0 END) AS pending,
+       SUM(CASE WHEN u.register_flag = 1 AND u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
+       SUM(CASE WHEN u.register_flag = 1 AND u.last_checkin_at IS NOT NULL
                      AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
                      AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
                 THEN 1 ELSE 0 END) AS warn
@@ -171,11 +173,13 @@ export async function getDistrictBreakdown(orgId: number | null, districtIds?: n
   );
 
   return rows.map((r) => {
-    const total  = Number(r.total);
-    const danger = Number(r.danger);
-    const warn   = Number(r.warn);
-    const safe   = total - danger - warn;
-    const response = total > 0 ? Math.round((safe / total) * 100) : 100;
+    const total     = Number(r.total);
+    const pending   = Number(r.pending);
+    const danger    = Number(r.danger);
+    const warn      = Number(r.warn);
+    const connected = total - pending;
+    const safe      = connected - danger - warn;
+    const response  = connected > 0 ? Math.round((safe / connected) * 100) : 100;
     return { name: r.name, total, danger, warn, response };
   });
 }
@@ -355,14 +359,16 @@ export async function getUsers(
                                   AND a.role = 'social_worker'
                                   AND a.active_flag = 1
                                   AND a.withdraw_flag = 0
-     LEFT JOIN invite_codes   ic ON ic.user_id      = u.user_id AND ic.used = 0
+     LEFT JOIN invite_codes   ic ON ic.id = (
+       SELECT id FROM invite_codes WHERE user_id = u.user_id AND used = 0 ORDER BY id DESC LIMIT 1
+     )
      WHERE u.active_flag = 1 ${statusCond} ${f.cond} ${searchCond}
      GROUP BY u.user_id, u.name, u.age, u.address, u.emergency_phone,
               u.last_checkin_at, u.status, u.interval_hours, u.register_flag,
-              d.name, ic.code
+              d.name
      ORDER BY
        CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 0
-            WHEN u.last_checkin_at IS NOT NULL AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 3.0 THEN 1
+            WHEN u.last_checkin_at IS NOT NULL AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0 THEN 1
             ELSE 2 END,
        u.last_checkin_at ASC
      LIMIT ? OFFSET ?`,
@@ -426,7 +432,7 @@ export async function getUserById(
   );
   if (!rows[0]) return null;
   const r = rows[0];
-  return { ...r, status: calcSignalStatus(r.last_checkin_at, r.interval_hours) };
+  return { ...r, status: calcSignalStatus(r.last_checkin_at, r.interval_hours, r.register_flag) };
 }
 
 interface ActionLogRow extends RowDataPacket {
