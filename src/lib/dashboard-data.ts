@@ -146,7 +146,6 @@ export async function getCriticalUsers(orgId: number | null, districtIds?: numbe
 interface DistrictRow extends RowDataPacket {
   name: string;
   total: number;
-  pending: number;
   danger: number;
   warn: number;
 }
@@ -157,15 +156,14 @@ export async function getDistrictBreakdown(orgId: number | null, districtIds?: n
     `SELECT
        d.name,
        COUNT(*) AS total,
-       SUM(CASE WHEN u.register_flag = 0 THEN 1 ELSE 0 END) AS pending,
-       SUM(CASE WHEN u.register_flag = 1 AND u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
-       SUM(CASE WHEN u.register_flag = 1 AND u.last_checkin_at IS NOT NULL
+       SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
+       SUM(CASE WHEN u.last_checkin_at IS NOT NULL
                      AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
                      AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
                 THEN 1 ELSE 0 END) AS warn
      FROM users u
      JOIN districts d ON u.district_id = d.dist_id
-     WHERE u.active_flag = 1
+     WHERE u.active_flag = 1 AND u.register_flag = 1
        ${f.cond}
      GROUP BY d.dist_id, d.name
      ORDER BY total DESC`,
@@ -173,13 +171,11 @@ export async function getDistrictBreakdown(orgId: number | null, districtIds?: n
   );
 
   return rows.map((r) => {
-    const total     = Number(r.total);
-    const pending   = Number(r.pending);
-    const danger    = Number(r.danger);
-    const warn      = Number(r.warn);
-    const connected = total - pending;
-    const safe      = connected - danger - warn;
-    const response  = connected > 0 ? Math.round((safe / connected) * 100) : 100;
+    const total    = Number(r.total);
+    const danger   = Number(r.danger);
+    const warn     = Number(r.warn);
+    const safe     = total - danger - warn;
+    const response = total > 0 ? Math.round((safe / total) * 100) : 100;
     return { name: r.name, total, danger, warn, response };
   });
 }
