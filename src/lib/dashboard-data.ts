@@ -355,8 +355,8 @@ export async function getUsers(
                                   AND a.role = 'social_worker'
                                   AND a.active_flag = 1
                                   AND a.withdraw_flag = 0
-     LEFT JOIN invite_codes   ic ON ic.id = (
-       SELECT id FROM invite_codes WHERE user_id = u.user_id AND used = 0 ORDER BY id DESC LIMIT 1
+     LEFT JOIN invite_codes   ic ON ic.code_id = (
+       SELECT code_id FROM invite_codes WHERE user_id = u.user_id AND used = 0 ORDER BY code_id DESC LIMIT 1
      )
      WHERE u.active_flag = 1 ${statusCond} ${f.cond} ${searchCond}
      GROUP BY u.user_id, u.name, u.age, u.address, u.emergency_phone,
