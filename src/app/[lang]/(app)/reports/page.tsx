@@ -153,12 +153,18 @@ export default async function ReportsPage(props: ReportsPageProps) {
             <CardTitle>{t.sections.subjects}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               <StatBlock
                 label={t.subjects.total}
                 value={report.subjects.total}
                 unit={t.subjects.unit}
                 tone="neutral"
+              />
+              <StatBlock
+                label={t.subjects.pending}
+                value={report.subjects.pending}
+                unit={t.subjects.unit}
+                tone="pending"
               />
               <StatBlock
                 label={t.subjects.danger}
@@ -358,10 +364,11 @@ function StatBlock({
   label: string;
   value: number;
   unit: string;
-  tone: "neutral" | "danger" | "warn" | "safe";
+  tone: "neutral" | "pending" | "danger" | "warn" | "safe";
 }) {
   const colorMap = {
     neutral: "text-foreground",
+    pending: "text-slate-500",
     danger:  "text-status-danger",
     warn:    "text-status-warn-fg",
     safe:    "text-status-safe-fg",

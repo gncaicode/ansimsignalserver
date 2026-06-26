@@ -31,6 +31,7 @@ export interface MonthlyReport {
   };
   subjects: {
     total: number;
+    pending: number;
     danger: number;
     warn: number;
     safe: number;
@@ -65,6 +66,7 @@ export interface MonthlyReport {
 interface OrgRow extends RowDataPacket { name: string; }
 interface StatsRow extends RowDataPacket {
   total: number;
+  pending: number;
   danger: number;
   warn: number;
   safe: number;
@@ -116,14 +118,15 @@ export async function getMonthlyReport(
   const { rows: statsRows } = await query<StatsRow>(
     `SELECT
        COUNT(*) AS total,
-       SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
-       SUM(CASE WHEN u.last_checkin_at IS NOT NULL
+       SUM(CASE WHEN u.register_flag = 0 THEN 1 ELSE 0 END) AS pending,
+       SUM(CASE WHEN u.register_flag = 1 AND u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
+       SUM(CASE WHEN u.register_flag = 1 AND u.last_checkin_at IS NOT NULL
                     AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
                     AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
                THEN 1 ELSE 0 END) AS warn,
-       SUM(CASE WHEN u.last_checkin_at IS NULL
+       SUM(CASE WHEN u.register_flag = 1 AND (u.last_checkin_at IS NULL
                     OR (${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
-                        AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0)
+                        AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0))
                THEN 1 ELSE 0 END) AS safe
      FROM users u
      ${filterJoin}
@@ -131,10 +134,11 @@ export async function getMonthlyReport(
     f.params,
   );
   const statsRow = statsRows[0];
-  const total  = Number(statsRow?.total  ?? 0);
-  const danger = Number(statsRow?.danger ?? 0);
-  const warn   = Number(statsRow?.warn   ?? 0);
-  const safe   = Number(statsRow?.safe   ?? 0);
+  const total   = Number(statsRow?.total   ?? 0);
+  const pending = Number(statsRow?.pending ?? 0);
+  const danger  = Number(statsRow?.danger  ?? 0);
+  const warn    = Number(statsRow?.warn    ?? 0);
+  const safe    = Number(statsRow?.safe    ?? 0);
 
   // 3. New subjects joined this month
   const { rows: newJoinedRows } = await query<NewJoinedRow>(
@@ -156,7 +160,7 @@ export async function getMonthlyReport(
        COUNT(*) AS total
      FROM users u
      ${filterJoin}
-     WHERE u.active_flag = 1 ${f.cond}`,
+     WHERE u.active_flag = 1 AND u.register_flag = 1 ${f.cond}`,
     [monthStart, monthEnd, ...f.params],
   );
   const checkedInMonth = Number(checkinRows[0]?.checked_in ?? 0);
@@ -311,7 +315,7 @@ export async function getMonthlyReport(
 
   return {
     overview: { orgName, year, month, generatedAt },
-    subjects: { total, danger, warn, safe, newJoined },
+    subjects: { total, pending, danger, warn, safe, newJoined },
     checkin:  { checkedInMonth, total: checkinTotal, rate: checkinRate },
     alerts:   { sent: alertsSent },
     districts,

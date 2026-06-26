@@ -653,6 +653,7 @@ const dict: typeof ko = {
     },
     subjects: {
       total: "対象者総数",
+      pending: "待機 (アプリ未連携)",
       danger: "緊急",
       warn: "注意",
       safe: "安全",

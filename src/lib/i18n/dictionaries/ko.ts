@@ -640,6 +640,7 @@ const dict = {
     },
     subjects: {
       total: "전체 대상자",
+      pending: "대기 (앱 미연결)",
       danger: "위급",
       warn: "주의",
       safe: "안전",
