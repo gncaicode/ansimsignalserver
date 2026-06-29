@@ -226,7 +226,7 @@ const dict: typeof ko = {
       bullets: [
         "職員・ケースワーカー専用クローズドシステム",
       ],
-      legal: "© 2026 지앤씨",
+      legal: "지앤씨",
     },
     login: {
       title: "業務システム ログイン",

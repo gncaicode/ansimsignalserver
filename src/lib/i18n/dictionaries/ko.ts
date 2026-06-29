@@ -223,7 +223,7 @@ const dict = {
       bullets: [
         "공무원/복지사 대상 폐쇄형 시스템",
       ],
-      legal: "© 2026 지앤씨",
+      legal: "지앤씨",
     },
     login: {
       title: "업무 시스템 로그인",
