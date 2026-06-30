@@ -11,6 +11,7 @@ import { headers } from "next/headers";
 import { getUsers, getOrgName, getDistrictOptions, getAdminOptions, getAlertCount } from "@/lib/dashboard-data";
 import { UsersTable } from "@/components/dashboard/UsersTable";
 import { BulkImportModal } from "@/components/dashboard/BulkImportModal";
+import { DashboardRefresher } from "@/components/dashboard/DashboardRefresher";
 
 const PAGE_SIZE = 20;
 
@@ -35,8 +36,9 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
 
   const adminInfo = getAdminHeaderInfo(session, lang);
 
-  const [{ users, total }, orgName, districtOptions, adminOptions, alertCount] = await Promise.all([
+  const [{ users, total }, { total: pendingCount }, orgName, districtOptions, adminOptions, alertCount] = await Promise.all([
     getUsers(orgId, statusFilter, page, PAGE_SIZE, q || undefined, districtIds),
+    getUsers(orgId, "pending", 1, 1, undefined, districtIds),
     getOrgName(orgId),
     getDistrictOptions(orgId),
     getAdminOptions(orgId),
@@ -50,6 +52,7 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
 
   return (
     <>
+      <DashboardRefresher />
       <AppHeader
         title={t.title}
         description={t.desc(users.length, total)}
@@ -80,10 +83,11 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
           </form>
 
           <div className="flex flex-wrap items-center gap-2">
-            <FilterPill href={`/${lang}/users?status=all${q ? `&q=${encodeURIComponent(q)}` : ""}`}    label={t.filterAll}    count={total}       active={statusFilter === "all"} />
-            <FilterPill href={`/${lang}/users?status=danger${q ? `&q=${encodeURIComponent(q)}` : ""}`} label={t.filterDanger} count={dangerCount} active={statusFilter === "danger"} tone="danger" />
-            <FilterPill href={`/${lang}/users?status=warn${q ? `&q=${encodeURIComponent(q)}` : ""}`}   label={t.filterWarn}   count={warnCount}   active={statusFilter === "warn"}   tone="warn" />
-            <FilterPill href={`/${lang}/users?status=safe${q ? `&q=${encodeURIComponent(q)}` : ""}`}   label={t.filterSafe}   count={safeCount}   active={statusFilter === "safe"}   tone="safe" />
+            <FilterPill href={`/${lang}/users?status=all${q ? `&q=${encodeURIComponent(q)}` : ""}`}        label={t.filterAll}     count={total}        active={statusFilter === "all"} />
+            <FilterPill href={`/${lang}/users?status=pending${q ? `&q=${encodeURIComponent(q)}` : ""}`}    label={t.filterPending} count={pendingCount} active={statusFilter === "pending"} tone="pending" />
+            <FilterPill href={`/${lang}/users?status=danger${q ? `&q=${encodeURIComponent(q)}` : ""}`}     label={t.filterDanger}  count={dangerCount}  active={statusFilter === "danger"} tone="danger" />
+            <FilterPill href={`/${lang}/users?status=warn${q ? `&q=${encodeURIComponent(q)}` : ""}`}       label={t.filterWarn}    count={warnCount}    active={statusFilter === "warn"}   tone="warn" />
+            <FilterPill href={`/${lang}/users?status=safe${q ? `&q=${encodeURIComponent(q)}` : ""}`}       label={t.filterSafe}    count={safeCount}    active={statusFilter === "safe"}   tone="safe" />
           </div>
 
           <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
@@ -200,7 +204,7 @@ function FilterPill({
   label: string;
   count: number;
   active?: boolean;
-  tone?: "danger" | "warn" | "safe";
+  tone?: "pending" | "danger" | "warn" | "safe";
 }) {
   const base = "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium border transition-colors";
   if (active) {
@@ -214,9 +218,10 @@ function FilterPill({
     );
   }
   const toneText =
-    tone === "danger" ? "text-status-danger" :
-    tone === "warn"   ? "text-status-warn-fg" :
-    tone === "safe"   ? "text-status-safe-fg" : "text-foreground";
+    tone === "pending" ? "text-slate-500" :
+    tone === "danger"  ? "text-status-danger" :
+    tone === "warn"    ? "text-status-warn-fg" :
+    tone === "safe"    ? "text-status-safe-fg" : "text-foreground";
   return (
     <a href={href}>
       <button className={`${base} border-border bg-white hover:bg-surface-muted ${toneText}`}>

@@ -53,8 +53,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2) 시스템 경로는 로케일 리다이렉트 제외
-  if (pathname.startsWith("/system")) {
+  // 2) 시스템 경로 및 공개 페이지는 로케일 리다이렉트 제외
+  if (pathname.startsWith("/system") || pathname.startsWith("/delete-account")) {
     return NextResponse.next();
   }
 

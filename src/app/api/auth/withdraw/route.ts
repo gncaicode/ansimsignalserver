@@ -8,7 +8,17 @@ export async function DELETE(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: '인증 토큰이 없거나 유효하지 않습니다.' }, { status: 401 });
     }
-    await execute('UPDATE users SET active_flag = 0, updated_at = NOW() WHERE user_id = ?', [user.user_id]);
+    await execute(
+      `UPDATE users
+       SET active_flag    = 0,
+           token          = NULL,
+           interval_hours = NULL,
+           last_checkin_at = NULL,
+           alert_sent_at  = NULL,
+           updated_at     = NOW()
+       WHERE user_id = ?`,
+      [user.user_id]
+    );
     return NextResponse.json({ message: '탈퇴가 완료되었습니다. 모든 데이터가 삭제되었습니다.' });
   } catch (err) {
     console.error('[DELETE /api/auth/withdraw]', err);

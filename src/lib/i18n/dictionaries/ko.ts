@@ -405,6 +405,7 @@ const dict = {
     desc: (visible: number, total: number) => `총 ${visible}명 표시 중 · 관내 등록 ${total}명`,
     searchPlaceholder: "이름, 주소, 담당자로 검색",
     filterAll: "전체 상태",
+    filterPending: "⏳ 대기",
     filterDanger: "🚨 위급",
     filterWarn: "⚠️ 주의",
     filterSafe: "✅ 안전",
@@ -513,7 +514,7 @@ const dict = {
     columns: {
       approvalStatus: "승인 상태",
       department: "소속 부서 / 복지센터",
-      position: "직급",
+      position: "직책",
       name: "이름",
       contact: "연락처 / 이메일",
       role: "권한 등급",

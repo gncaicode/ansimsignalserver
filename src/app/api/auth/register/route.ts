@@ -58,16 +58,16 @@ export async function POST(req: NextRequest) {
       [invite.code_id]
     );
 
+    const careWorkers = invite.admin_name
+      ? [{ name: invite.admin_name, phone: invite.admin_phone ?? null }]
+      : [];
+
     return NextResponse.json({
       token,
       user: {
         name: invite.user_name,
       },
-      care_worker: {
-        name:         invite.admin_name,
-        phone:        invite.admin_phone,
-        organization: invite.org_name,
-      },
+      care_workers: careWorkers,
     }, { status: 200 });
   } catch (err) {
     console.error('[POST /api/auth/register]', err);

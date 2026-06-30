@@ -413,6 +413,7 @@ const dict: typeof ko = {
       `${visible}名表示中 · 管内登録 ${total}名`,
     searchPlaceholder: "氏名・住所・担当者で検索",
     filterAll: "すべて",
+    filterPending: "⏳ 待機",
     filterDanger: "🚨 緊急",
     filterWarn: "⚠️ 注意",
     filterSafe: "✅ 安全",
