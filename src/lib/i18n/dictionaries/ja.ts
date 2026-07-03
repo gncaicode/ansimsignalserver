@@ -16,6 +16,7 @@ const dict: typeof ko = {
     features: "機能",
     roi: "予算効果",
     process: "導入プロセス",
+    download: "アプリダウンロード",
     faq: "よくあるご質問",
     login: "ログイン",
     contact: "導入のお問い合わせ",
@@ -181,6 +182,20 @@ const dict: typeof ko = {
       stepLabel: "STEP",
     },
 
+    download: {
+      badge: "アプリダウンロード",
+      title: "安心シグナルアプリを、QRコードで簡単インストール",
+      desc: "対象者・ご家族はモバイルアプリで1日1回、安否確認ボタンを押すだけです。",
+      ios: {
+        label: "App Store",
+        qrAlt: "安心シグナル iOSアプリのダウンロードQRコード",
+      },
+      android: {
+        label: "Google Play",
+        qrAlt: "安心シグナル AndroidアプリのダウンロードQRコード",
+      },
+    },
+
     cta: {
       title: {
         line1: "管内のたった一人の孤独な死も",
@@ -193,9 +208,9 @@ const dict: typeof ko = {
         hours: "平日 09:00〜18:00 (昼休み 12:00〜13:00 を除く)",
         phone: "0120-000-000",
         items: [
-          "・メール : sales@anshin-signal.jp",
-          "・住所 : 東京都◯◯区安心通り1-2-3 安心ビル4F",
-          "・運営 : 株式会社アンシンシグナル / 代表 山田 安心",
+          "・メール : gncai.contact@gmail.com",
+          "・住所 : 수원시 팔달구 행궁로 98 203호",
+          "・運営 : 지앤씨 / 代表 박희정",
         ],
       },
       form: {
@@ -211,8 +226,7 @@ const dict: typeof ko = {
     },
 
     footer: {
-      copyright:
-        "株式会社アンシンシグナル · All rights reserved. 本サービスはデジタル庁セキュリティ要件および個人情報保護法に準拠しています。",
+      copyright: "지앤씨 · 無断転載を禁じます。",
     },
   },
 

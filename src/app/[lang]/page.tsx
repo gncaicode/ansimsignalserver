@@ -43,6 +43,9 @@ export default async function LandingPage(props: PageProps<"/[lang]">) {
             <a href="#process" className="hover:text-trust-700">
               {dict.nav.process}
             </a>
+            <a href="#download" className="hover:text-trust-700">
+              {dict.nav.download}
+            </a>
             <a href="#faq" className="hover:text-trust-700">
               {dict.nav.faq}
             </a>
@@ -260,6 +263,32 @@ export default async function LandingPage(props: PageProps<"/[lang]">) {
         </div>
       </section>
 
+      {/* ============= 앱 다운로드 ============= */}
+      <section id="download" className="border-b border-border bg-white scroll-mt-16">
+        <div className="mx-auto max-w-7xl px-6 py-20">
+          <div className="max-w-2xl">
+            <Badge tone="trust">{t.download.badge}</Badge>
+            <h2 className="mt-3 text-3xl md:text-4xl font-extrabold tracking-tight">
+              {t.download.title}
+            </h2>
+            <p className="mt-4 text-muted">{t.download.desc}</p>
+          </div>
+
+          <div className="mt-12 grid sm:grid-cols-2 gap-5 max-w-xl">
+            <DownloadCard
+              qrSrc="/qr-ios.png"
+              qrAlt={t.download.ios.qrAlt}
+              label={t.download.ios.label}
+            />
+            <DownloadCard
+              qrSrc="/qr-android.png"
+              qrAlt={t.download.android.qrAlt}
+              label={t.download.android.label}
+            />
+          </div>
+        </div>
+      </section>
+
       {/* ============= CTA ============= */}
       <section id="contact" className="bg-trust-900 text-white scroll-mt-16">
         <div className="mx-auto max-w-7xl px-6 py-20 grid lg:grid-cols-[1.2fr_1fr] gap-12 items-center">
@@ -371,6 +400,35 @@ function CompareCard({
       </p>
       <p className="mt-1 text-xs text-muted">{detail}</p>
     </div>
+  );
+}
+
+const APP_STORE_URLS = {
+  ios: "https://apps.apple.com/kr/app/%EC%95%88%EC%8B%AC%EC%8B%9C%EA%B7%B8%EB%84%90/id6785724887",
+  android: "https://play.google.com/store/apps/details?id=com.gncaitech.ansim_signal",
+} as const;
+
+function DownloadCard({
+  qrSrc,
+  qrAlt,
+  label,
+}: {
+  qrSrc: string;
+  qrAlt: string;
+  label: string;
+}) {
+  const href = qrSrc.includes("android") ? APP_STORE_URLS.android : APP_STORE_URLS.ios;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-4 rounded-xl border border-border bg-white p-5 hover:border-trust-200 hover:shadow-[0_2px_12px_rgba(37,99,235,0.08)] transition-all"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={qrSrc} alt={qrAlt} width={96} height={96} className="h-24 w-24 shrink-0" />
+      <span className="text-base font-bold">{label}</span>
+    </a>
   );
 }
 

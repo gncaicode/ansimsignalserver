@@ -14,6 +14,7 @@ const dict = {
     features: "기능",
     roi: "예산 효과",
     process: "도입 절차",
+    download: "앱 다운로드",
     faq: "자주 묻는 질문",
     login: "로그인",
     contact: "도입 문의",
@@ -177,6 +178,20 @@ const dict = {
         { n: "03", t: "본 계약 · 확대", d: "지자체 앱 브랜딩 후 전 구역 확대" },
       ],
       stepLabel: "STEP",
+    },
+
+    download: {
+      badge: "앱 다운로드",
+      title: "안심시그널 앱, QR 코드로 간편하게 설치하세요",
+      desc: "대상자와 보호자는 모바일 앱에서 매일 한 번 안부 확인 버튼만 누르면 됩니다.",
+      ios: {
+        label: "App Store",
+        qrAlt: "안심시그널 iOS 앱 다운로드 QR 코드",
+      },
+      android: {
+        label: "Google Play",
+        qrAlt: "안심시그널 Android 앱 다운로드 QR 코드",
+      },
     },
 
     cta: {

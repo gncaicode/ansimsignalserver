@@ -8,6 +8,10 @@ import {
   hasLocale,
 } from "@/lib/i18n";
 
+const LANGUAGE_ALTERNATES = Object.fromEntries(
+  LOCALES.map((l) => [l, `/${l}`]),
+);
+
 export async function generateStaticParams() {
   return LOCALES.map((lang) => ({ lang }));
 }
@@ -19,8 +23,32 @@ export async function generateMetadata(
   const safeLang = hasLocale(lang) ? lang : DEFAULT_LOCALE;
   const dict = await getDictionary(safeLang);
   return {
+    metadataBase: new URL("http://assignal.net"),
     title: dict.meta.title,
     description: dict.meta.description,
+    alternates: {
+      canonical: `/${safeLang}`,
+      languages: LANGUAGE_ALTERNATES,
+    },
+    verification: {
+      google: "46IUtVjOpzzxWbECnUUhlNolJtIKQU_474htyEt-gQ0",
+      other: {
+        "naver-site-verification": "1c95196fbdaa7e267d1f5f1555df1303f7ad5b30",
+      },
+    },
+    openGraph: {
+      title: dict.meta.title,
+      description: dict.meta.description,
+      url: `/${safeLang}`,
+      siteName: dict.brand.name,
+      locale: safeLang === "ja" ? "ja_JP" : "ko_KR",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: dict.meta.title,
+      description: dict.meta.description,
+    },
   };
 }
 
