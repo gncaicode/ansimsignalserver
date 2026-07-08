@@ -102,7 +102,11 @@ export default async function UserDetailPage(
                 label={t.labelCaseworker}
                 value={
                   user.admin_name
-                    ? <Badge tone="trust">{user.admin_name}</Badge>
+                    ? <div className="flex flex-wrap gap-1">
+                        {user.admin_name.split(',').map((n) => (
+                          <Badge key={n.trim()} tone="trust">{n.trim()}</Badge>
+                        ))}
+                      </div>
                     : <span className="text-muted">{t.unassigned}</span>
                 }
               />

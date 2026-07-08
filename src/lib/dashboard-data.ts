@@ -106,13 +106,20 @@ export async function getCriticalUsers(orgId: number | null, districtIds?: numbe
        u.user_id, u.name, u.age, u.address, u.emergency_phone,
        u.last_checkin_at, u.alert_sent_at, u.status, u.interval_hours, u.register_flag,
        d.name AS district_name,
-       a.name AS admin_name
+       GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') AS admin_name
      FROM users u
-     LEFT JOIN districts d ON u.district_id = d.dist_id
-     LEFT JOIN admins    a ON u.admin_id    = a.admin_id
+     LEFT JOIN districts       d  ON u.district_id  = d.dist_id
+     LEFT JOIN admin_districts ad ON u.district_id  = ad.district_id
+     LEFT JOIN admins          a  ON ad.admin_id    = a.admin_id
+                                  AND a.role = 'social_worker'
+                                  AND a.active_flag = 1
+                                  AND a.withdraw_flag = 0
      WHERE u.active_flag = 1
        AND (${DYNAMIC_CRITICAL_COND})
        ${f.cond}
+     GROUP BY u.user_id, u.name, u.age, u.address, u.emergency_phone,
+              u.last_checkin_at, u.alert_sent_at, u.status, u.interval_hours, u.register_flag,
+              d.name
      ORDER BY
        CASE WHEN ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 0 ELSE 1 END,
        u.last_checkin_at ASC
@@ -198,13 +205,19 @@ export async function getActivityLog(orgId: number | null, districtIds?: number[
     `SELECT
        u.user_id, u.name, u.last_checkin_at, u.alert_sent_at, u.interval_hours, u.register_flag,
        d.name AS district_name,
-       a.name AS admin_name
+       GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') AS admin_name
      FROM users u
-     LEFT JOIN districts d ON u.district_id = d.dist_id
-     LEFT JOIN admins    a ON u.admin_id    = a.admin_id
+     LEFT JOIN districts       d  ON u.district_id  = d.dist_id
+     LEFT JOIN admin_districts ad ON u.district_id  = ad.district_id
+     LEFT JOIN admins          a  ON ad.admin_id    = a.admin_id
+                                  AND a.role = 'social_worker'
+                                  AND a.active_flag = 1
+                                  AND a.withdraw_flag = 0
      WHERE u.active_flag = 1
        AND (u.last_checkin_at IS NOT NULL OR u.alert_sent_at IS NOT NULL)
        ${f.cond}
+     GROUP BY u.user_id, u.name, u.last_checkin_at, u.alert_sent_at, u.interval_hours, u.register_flag,
+              d.name
      ORDER BY GREATEST(
        COALESCE(u.last_checkin_at, '1970-01-01'),
        COALESCE(u.alert_sent_at,  '1970-01-01')
@@ -417,12 +430,19 @@ export async function getUserById(
        u.user_id, u.name, u.age, u.address, u.emergency_phone,
        u.last_checkin_at, u.interval_hours, u.register_flag,
        d.name AS district_name,
-       a.name AS admin_name
+       GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') AS admin_name
      FROM users u
-     LEFT JOIN districts d ON u.district_id = d.dist_id
-     LEFT JOIN admins    a ON u.admin_id    = a.admin_id
+     LEFT JOIN districts       d  ON u.district_id  = d.dist_id
+     LEFT JOIN admin_districts ad ON u.district_id  = ad.district_id
+     LEFT JOIN admins          a  ON ad.admin_id    = a.admin_id
+                                  AND a.role = 'social_worker'
+                                  AND a.active_flag = 1
+                                  AND a.withdraw_flag = 0
      WHERE u.user_id = ? AND u.active_flag = 1
        ${orgId ? "AND d.org_id = ?" : ""}
+     GROUP BY u.user_id, u.name, u.age, u.address, u.emergency_phone,
+              u.last_checkin_at, u.interval_hours, u.register_flag,
+              d.name
      LIMIT 1`,
     orgId ? [userId, orgId] : [userId],
   );

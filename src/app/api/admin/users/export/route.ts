@@ -32,12 +32,18 @@ export async function GET(req: NextRequest) {
   const { rows } = await query<ExportRow>(
     `SELECT
        u.name, u.age, d.name AS district_name, u.address,
-       u.emergency_phone, a.name AS admin_name,
+       u.emergency_phone, GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') AS admin_name,
        u.status, u.last_checkin_at, u.register_flag
      FROM users u
-     LEFT JOIN districts d ON u.district_id = d.dist_id
-     LEFT JOIN admins    a ON u.admin_id    = a.admin_id
+     LEFT JOIN districts       d  ON u.district_id  = d.dist_id
+     LEFT JOIN admin_districts ad ON u.district_id  = ad.district_id
+     LEFT JOIN admins          a  ON ad.admin_id    = a.admin_id
+                                  AND a.role = 'social_worker'
+                                  AND a.active_flag = 1
+                                  AND a.withdraw_flag = 0
      WHERE u.active_flag = 1 ${orgCond}
+     GROUP BY u.user_id, u.name, u.age, d.name, u.address,
+              u.emergency_phone, u.status, u.last_checkin_at, u.register_flag
      ORDER BY FIELD(u.status,'danger','warn','safe'), u.last_checkin_at ASC`,
     params,
   );
