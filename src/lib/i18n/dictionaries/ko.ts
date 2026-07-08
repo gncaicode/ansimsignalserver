@@ -473,6 +473,7 @@ const dict = {
       district: "관할구역 / 주소",
       contact: "긴급연락처",
       caseworker: "담당자",
+      interval: "체크인 주기",
       lastCheck: "최근 안부 확인",
     },
     pagination: {
@@ -485,6 +486,7 @@ const dict = {
       more: "더보기",
     },
     yearsSuffix: "세",
+    intervalSuffix: "시간",
     genderM: "남",
     genderF: "여",
   },

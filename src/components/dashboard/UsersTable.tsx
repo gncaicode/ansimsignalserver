@@ -39,8 +39,9 @@ interface Props {
   districts: Option[];
   admins: Option[];
   t: {
-    columns: { status: string; nameId: string; age: string; district: string; contact: string; caseworker: string; lastCheck: string; };
+    columns: { status: string; nameId: string; age: string; district: string; contact: string; caseworker: string; interval: string; lastCheck: string; };
     yearsSuffix: string;
+    intervalSuffix: string;
     a11y: { call: string; more: string; };
     addModal: {
       title: string; name: string; namePlaceholder: string;
@@ -243,6 +244,7 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
             <TableHead>{t.columns.district}</TableHead>
             <TableHead>{t.columns.contact}</TableHead>
             <TableHead className="w-[100px]">{t.columns.caseworker}</TableHead>
+            <TableHead className="w-[90px] text-center">{t.columns.interval}</TableHead>
             <TableHead className="w-[170px]">{t.columns.lastCheck}</TableHead>
             <TableHead className="w-[80px]" />
           </TableRow>
@@ -250,7 +252,7 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
         <TableBody>
           {users.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="py-12 text-center text-muted">
+              <TableCell colSpan={9} className="py-12 text-center text-muted">
                 등록된 대상자가 없습니다.
               </TableCell>
             </TableRow>
@@ -303,6 +305,10 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
                       </div>
                     : <span className="text-xs text-muted">{common.unassigned}</span>
                   }
+                </TableCell>
+                <TableCell className="text-center">
+                  <span className="font-semibold">{u.interval_hours}</span>
+                  <span className="ml-0.5 text-xs text-subtle">{t.intervalSuffix}</span>
                 </TableCell>
                 <TableCell>
                   {u.last_checkin_at ? (

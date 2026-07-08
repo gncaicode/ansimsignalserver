@@ -480,6 +480,7 @@ const dict: typeof ko = {
       district: "担当エリア / 住所",
       contact: "緊急連絡先",
       caseworker: "担当者",
+      interval: "チェックイン周期",
       lastCheck: "直近の安否確認",
     },
     pagination: {
@@ -497,6 +498,7 @@ const dict: typeof ko = {
       more: "その他",
     },
     yearsSuffix: "歳",
+    intervalSuffix: "時間",
     genderM: "男",
     genderF: "女",
   },

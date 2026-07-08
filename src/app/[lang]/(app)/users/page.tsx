@@ -119,6 +119,7 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
               t={{
                 columns: t.columns,
                 yearsSuffix: t.yearsSuffix,
+                intervalSuffix: t.intervalSuffix,
                 a11y: t.a11y,
                 addModal: t.addModal,
               }}
