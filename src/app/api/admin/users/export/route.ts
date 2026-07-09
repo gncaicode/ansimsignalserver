@@ -67,6 +67,7 @@ export async function GET(req: NextRequest) {
       "긴급연락처": r.emergency_phone,
       "담당자":     r.admin_name ?? "",
       "상태":       statusLabel[r.status] ?? r.status,
+      "체크인주기(시간)": r.interval_hours,
       "마지막체크인": r.last_checkin_at
         ? new Date(r.last_checkin_at.replace(' ', 'T') + '+09:00').toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })
         : "",
@@ -77,7 +78,7 @@ export async function GET(req: NextRequest) {
   const ws = XLSX.utils.json_to_sheet(data);
   ws["!cols"] = [
     { wch: 12 }, { wch: 6 }, { wch: 14 }, { wch: 30 },
-    { wch: 14 }, { wch: 10 }, { wch: 8 }, { wch: 20 }, { wch: 8 },
+    { wch: 14 }, { wch: 10 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 8 },
   ];
   XLSX.utils.book_append_sheet(wb, ws, "대상자목록");
 
