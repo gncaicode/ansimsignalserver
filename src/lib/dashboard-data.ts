@@ -339,11 +339,20 @@ export async function getUsers(
           : `AND u.register_flag = 1 AND (u.last_checkin_at IS NULL OR (${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0))`
     : "";
   const f = districtFilter(districtIds, orgId);
-  const searchCond = q ? "AND (u.name LIKE ? OR u.address LIKE ?)" : "";
+  const searchCond = q
+    ? `AND (u.name LIKE ? OR u.address LIKE ? OR EXISTS (
+         SELECT 1 FROM admin_districts sad
+         JOIN admins sa ON sa.admin_id = sad.admin_id
+                       AND sa.role = 'social_worker'
+                       AND sa.active_flag = 1
+                       AND sa.withdraw_flag = 0
+         WHERE sad.district_id = u.district_id AND sa.name LIKE ?
+       ))`
+    : "";
   const likeVal = q ? `%${q}%` : null;
 
   const params: (string | number | null)[] = [...f.params];
-  if (likeVal) params.push(likeVal, likeVal);
+  if (likeVal) params.push(likeVal, likeVal, likeVal);
 
   const { rows: countRows } = await query<RowDataPacket & { total: number }>(
     `SELECT COUNT(*) AS total
