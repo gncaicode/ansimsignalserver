@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
       "긴급연락처": r.emergency_phone,
       "담당자":     r.admin_name ?? "",
       "상태":       statusLabel[r.status] ?? r.status,
-      "체크인주기(시간)": r.interval_hours,
+      "체크인주기": `${r.interval_hours}시간`,
       "마지막체크인": r.last_checkin_at
         ? new Date(r.last_checkin_at.replace(' ', 'T') + '+09:00').toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })
         : "",
