@@ -89,6 +89,12 @@ export async function proxy(request: NextRequest) {
       const loginUrl = new URL(`/${lang}/login`, request.url);
       return NextResponse.redirect(loginUrl);
     }
+
+    // 로그인 필수 관리 화면은 어떤 중간 프록시/브라우저도 캐시하지 않도록 명시
+    // (기관 네트워크의 보안 프록시 등이 쿼리스트링을 무시하고 캐시하는 경우 대비)
+    const res = NextResponse.next();
+    res.headers.set("Cache-Control", "no-store, must-revalidate");
+    return res;
   }
 }
 
