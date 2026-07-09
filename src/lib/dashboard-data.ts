@@ -10,7 +10,7 @@ function toIsoKst(s: string): string {
 
 // last_checkin_at + interval_hours 기반 실시간 상태 계산 (Flutter 앱과 동일 로직)
 // registerFlag=0이면 앱 미연결 → 대기
-function calcSignalStatus(lastCheckinAt: string | null, intervalHours: number, registerFlag = 1): SignalStatus {
+export function calcSignalStatus(lastCheckinAt: string | null, intervalHours: number, registerFlag = 1): SignalStatus {
   if (registerFlag === 0) return "pending";
   if (!lastCheckinAt) return "safe";
   const remainingMs = new Date(toIsoKst(lastCheckinAt)).getTime() + intervalHours * 3_600_000 - Date.now();

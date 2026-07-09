@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { query } from "@/lib/db";
 import { logAccess } from "@/lib/access-log";
+import { calcSignalStatus } from "@/lib/dashboard-data";
 import type { RowDataPacket } from "mysql2";
 import * as XLSX from "xlsx";
 
@@ -12,7 +13,7 @@ interface ExportRow extends RowDataPacket {
   address: string;
   emergency_phone: string;
   admin_name: string | null;
-  status: string;
+  interval_hours: number;
   last_checkin_at: string | null;
   register_flag: number;
 }
@@ -31,9 +32,9 @@ export async function GET(req: NextRequest) {
 
   const { rows } = await query<ExportRow>(
     `SELECT
-       u.name, u.age, d.name AS district_name, u.address,
+       u.user_id, u.name, u.age, d.name AS district_name, u.address,
        u.emergency_phone, GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') AS admin_name,
-       u.status, u.last_checkin_at, u.register_flag
+       u.interval_hours, u.last_checkin_at, u.register_flag
      FROM users u
      LEFT JOIN districts       d  ON u.district_id  = d.dist_id
      LEFT JOIN admin_districts ad ON u.district_id  = ad.district_id
@@ -43,28 +44,34 @@ export async function GET(req: NextRequest) {
                                   AND a.withdraw_flag = 0
      WHERE u.active_flag = 1 ${orgCond}
      GROUP BY u.user_id, u.name, u.age, d.name, u.address,
-              u.emergency_phone, u.status, u.last_checkin_at, u.register_flag
-     ORDER BY FIELD(u.status,'danger','warn','safe'), u.last_checkin_at ASC`,
+              u.emergency_phone, u.interval_hours, u.last_checkin_at, u.register_flag
+     ORDER BY u.last_checkin_at ASC`,
     params,
   );
 
   const statusLabel: Record<string, string> = {
-    danger: "위급", warning: "주의", safe: "안전",
+    danger: "위급", warn: "주의", safe: "안전", pending: "대기",
   };
 
-  const data = rows.map((r) => ({
-    "이름":       r.name,
-    "연령":       r.age,
-    "관할구역":   r.district_name ?? "",
-    "주소":       r.address,
-    "긴급연락처": r.emergency_phone,
-    "담당자":     r.admin_name ?? "",
-    "상태":       statusLabel[r.status] ?? r.status,
-    "마지막체크인": r.last_checkin_at
-      ? new Date(r.last_checkin_at.replace(' ', 'T') + '+09:00').toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })
-      : "",
-    "앱가입":     r.register_flag === 1 ? "완료" : "미가입",
-  }));
+  const data = rows
+    .map((r) => ({ ...r, status: calcSignalStatus(r.last_checkin_at, r.interval_hours, r.register_flag) }))
+    .sort((a, b) => {
+      const order: Record<string, number> = { danger: 0, warn: 1, pending: 2, safe: 3 };
+      return order[a.status] - order[b.status];
+    })
+    .map((r) => ({
+      "이름":       r.name,
+      "연령":       r.age,
+      "관할구역":   r.district_name ?? "",
+      "주소":       r.address,
+      "긴급연락처": r.emergency_phone,
+      "담당자":     r.admin_name ?? "",
+      "상태":       statusLabel[r.status] ?? r.status,
+      "마지막체크인": r.last_checkin_at
+        ? new Date(r.last_checkin_at.replace(' ', 'T') + '+09:00').toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })
+        : "",
+      "앱가입":     r.register_flag === 1 ? "완료" : "미가입",
+    }));
 
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(data);
