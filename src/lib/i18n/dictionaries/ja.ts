@@ -433,7 +433,7 @@ const dict: typeof ko = {
     filterSafe: "✅ 安全",
     filterDetailed: "詳細フィルター",
     btnExport: "現在のリストをエクスポート",
-    btnImport: "CSV一括登録",
+    btnImport: "エクセル一括登録",
     btnAdd: "個別に対象者を追加",
     addModal: {
       title: "対象者登録",
@@ -462,7 +462,7 @@ const dict: typeof ko = {
     importModal: {
       title: "Excel一括登録",
       templateLabel: "登録フォームダウンロード",
-      templateDesc: "· 氏名、年齢、エリア、住所、連絡先、担当者",
+      templateDesc: "· 氏名、年齢、エリア、住所、連絡先",
       templateBtn: "フォーム",
       dropLabel: "クリックしてファイルを選択",
       dropDesc: ".xlsxファイルのみ対応",

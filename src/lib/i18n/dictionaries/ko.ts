@@ -426,7 +426,7 @@ const dict = {
     filterSafe: "✅ 안전",
     filterDetailed: "상세 필터",
     btnExport: "현재 목록 내보내기",
-    btnImport: "엑셀 일괄 등록(CSV)",
+    btnImport: "엑셀 일괄 등록",
     btnAdd: "개별 대상자 추가",
     addModal: {
       title: "대상자 등록",
@@ -455,7 +455,7 @@ const dict = {
     importModal: {
       title: "엑셀 일괄 등록",
       templateLabel: "등록 양식 다운로드",
-      templateDesc: "· 이름, 연령, 구역, 주소, 연락처, 담당자",
+      templateDesc: "· 이름, 연령, 구역, 주소, 연락처",
       templateBtn: "양식",
       dropLabel: "클릭하여 파일 선택",
       dropDesc: ".xlsx 파일만 지원합니다",

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { execute, query } from "@/lib/db";
+import { logAccess } from "@/lib/access-log";
 import type { RowDataPacket } from "mysql2";
 import * as XLSX from "xlsx";
 
 interface DistrictRow extends RowDataPacket { dist_id: number; name: string; }
-interface AdminRow    extends RowDataPacket { admin_id: number; name: string; }
 
 function generateCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -34,17 +34,11 @@ export async function POST(req: NextRequest) {
 
   const orgId = session.organization_id ?? null;
 
-  // 구역/담당자 목록 미리 로드
+  // 구역 목록 미리 로드
   const { rows: districts } = await query<DistrictRow>(
     orgId
       ? "SELECT dist_id, name FROM districts WHERE org_id = ?"
       : "SELECT dist_id, name FROM districts",
-    orgId ? [orgId] : [],
-  );
-  const { rows: admins } = await query<AdminRow>(
-    orgId
-      ? "SELECT admin_id, name FROM admins WHERE organization_id = ? AND active_flag = 1"
-      : "SELECT admin_id, name FROM admins WHERE active_flag = 1",
     orgId ? [orgId] : [],
   );
 
@@ -61,13 +55,11 @@ export async function POST(req: NextRequest) {
     const districtName  = String(row["관할구역"] ?? "").trim();
     const address       = String(row["주소"] ?? "").trim();
     const emergencyPhone = String(row["긴급연락처"] ?? "").trim();
-    const adminName     = String(row["담당자"] ?? "").trim();
 
     if (!name) { errors.push(`${rowNum}행: 이름이 없습니다.`); continue; }
     if (!age || age < 1 || age > 150) { errors.push(`${rowNum}행: 올바른 연령이 아닙니다.`); continue; }
 
     const district = districtName ? districts.find((d) => d.name === districtName) : null;
-    const admin    = adminName    ? admins.find((a) => a.name === adminName)        : null;
 
     if (districtName && !district) {
       errors.push(`${rowNum}행: 구역 '${districtName}'을 찾을 수 없습니다.`);
@@ -77,9 +69,9 @@ export async function POST(req: NextRequest) {
     try {
       const { insertId } = await execute(
         `INSERT INTO users
-           (name, age, district_id, address, emergency_phone, admin_id, joined_at, active_flag)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
-        [name, age, district?.dist_id ?? null, address, emergencyPhone, admin?.admin_id ?? null, joinedAt],
+           (name, age, district_id, address, emergency_phone, joined_at, active_flag)
+         VALUES (?, ?, ?, ?, ?, ?, 1)`,
+        [name, age, district?.dist_id ?? null, address, emergencyPhone, joinedAt],
       );
 
       // 초대코드 발급
@@ -93,6 +85,7 @@ export async function POST(req: NextRequest) {
         } catch { /* 중복 재시도 */ }
       }
 
+      await logAccess({ adminId: session.admin_id, action: "create_user", resource: `user_id=${insertId} (bulk)`, req });
       inserted++;
     } catch {
       errors.push(`${rowNum}행: 저장 중 오류가 발생했습니다.`);
