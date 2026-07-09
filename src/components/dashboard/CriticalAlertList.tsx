@@ -183,6 +183,7 @@ function AlertRow({
           btnLabel={labels.btnRecord}
           btnA11y={labels.btnRecordA11y}
           t={labels.actionModal}
+          locale={locale}
         />
       </div>
     </li>

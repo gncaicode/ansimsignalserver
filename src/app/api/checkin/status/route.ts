@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/auth';
+import { getUserWithCareWorkers, parseCareWorkers } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getUserFromRequest(req);
+    const user = await getUserWithCareWorkers(req);
     if (!user) {
       return NextResponse.json({ error: '인증 토큰이 없거나 유효하지 않습니다.' }, { status: 401 });
     }
+
+    const careWorkers = parseCareWorkers(user.care_workers_raw);
 
     if (!user.last_checkin_at) {
       return NextResponse.json({
@@ -14,7 +16,7 @@ export async function GET(req: NextRequest) {
         user_name:      user.name,
         interval_hours: user.interval_hours,
         alert_sent:     false,
-        care_worker:    null,
+        care_workers:   careWorkers,
       });
     }
 
@@ -41,7 +43,7 @@ export async function GET(req: NextRequest) {
       remaining_hours: Math.max(0, remainingHours),
       alert_sent:      !!user.alert_sent_at,
       interval_hours:  user.interval_hours,
-      care_worker:     null,
+      care_workers:    careWorkers,
     });
   } catch (err) {
     console.error('[GET /api/checkin/status]', err);
