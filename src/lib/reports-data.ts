@@ -1,7 +1,18 @@
 import { query } from "./db";
+import { nowKst } from "./utils";
 import type { RowDataPacket } from "mysql2";
 
 const NOW_KST = "NOW()";
+
+// 대상자별 user_status_logs에서 특정 시각(changed_at < ?) 이전의 마지막 이력 1건을 뽑는 서브쿼리
+// (지난 달처럼 이미 끝난 기간의 "그 시점 기준 상태"를 재구성할 때 사용)
+const LATEST_STATUS_JOIN = `
+  LEFT JOIN (
+    SELECT user_id, status,
+           ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY changed_at DESC, log_id DESC) AS rn
+    FROM user_status_logs
+    WHERE changed_at < ?
+  ) latest ON latest.user_id = u.user_id AND latest.rn = 1`;
 
 function monthRange(year: number, month: number): { monthStart: string; monthEnd: string } {
   const monthStart = `${year}-${String(month).padStart(2, "0")}-01 00:00:00`;
@@ -85,6 +96,7 @@ interface ActionRow extends RowDataPacket {
   action_type: string;
   cnt: number;
 }
+interface StatusCountRow extends RowDataPacket { status: string; cnt: number; }
 
 export async function getMonthlyReport(
   orgId: number | null,
@@ -103,6 +115,10 @@ export async function getMonthlyReport(
       ? "LEFT JOIN districts d ON u.district_id = d.dist_id"
       : "";
 
+  // 이미 끝난(과거) 달인지 — 과거 달은 실시간(NOW()) 계산이 아니라 user_status_logs 기반
+  // "그 달 말 시점 기준" 상태로 재구성한다. 진행 중인(이번) 달은 지금처럼 실시간 계산 유지.
+  const isPastMonth = monthEnd <= nowKst();
+
   // 1. Org name
   let orgName = "";
   if (orgId) {
@@ -113,31 +129,55 @@ export async function getMonthlyReport(
     orgName = rows[0]?.name ?? "";
   }
 
-  // 2. Current subject stats (real-time danger/warn/safe)
-  const { rows: statsRows } = await query<StatsRow>(
-    `SELECT
-       COUNT(*) AS total,
-       SUM(CASE WHEN u.register_flag = 0 THEN 1 ELSE 0 END) AS pending,
-       SUM(CASE WHEN u.register_flag = 1 AND u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
-       SUM(CASE WHEN u.register_flag = 1 AND u.last_checkin_at IS NOT NULL
-                    AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
-                    AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
-               THEN 1 ELSE 0 END) AS warn,
-       SUM(CASE WHEN u.register_flag = 1 AND (u.last_checkin_at IS NULL
-                    OR (${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
-                        AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0))
-               THEN 1 ELSE 0 END) AS safe
-     FROM users u
-     ${filterJoin}
-     WHERE u.active_flag = 1 ${f.cond}`,
-    f.params,
-  );
-  const statsRow = statsRows[0];
-  const total   = Number(statsRow?.total   ?? 0);
-  const pending = Number(statsRow?.pending ?? 0);
-  const danger  = Number(statsRow?.danger  ?? 0);
-  const warn    = Number(statsRow?.warn    ?? 0);
-  const safe    = Number(statsRow?.safe    ?? 0);
+  // 2. Subject stats — 이번 달(진행 중): 실시간 계산 / 지난 달(종료): 이력 기반 재구성
+  let total = 0, pending = 0, danger = 0, warn = 0, safe = 0;
+
+  if (isPastMonth) {
+    const { rows: histRows } = await query<StatusCountRow>(
+      `SELECT latest.status AS status, COUNT(*) AS cnt
+       FROM users u
+       ${filterJoin}
+       ${LATEST_STATUS_JOIN}
+       WHERE u.active_flag = 1 AND u.joined_at < ? ${f.cond}
+       GROUP BY latest.status`,
+      [monthEnd, monthEnd, ...f.params],
+    );
+    for (const r of histRows) {
+      const cnt = Number(r.cnt);
+      total += cnt;
+      if (r.status === "pending") pending = cnt;
+      else if (r.status === "danger") danger = cnt;
+      else if (r.status === "warn") warn = cnt;
+      else if (r.status === "safe") safe = cnt;
+      // status가 NULL(그 시점 이전 이력이 없는 대상자)인 그룹은 집계에서 제외됨
+      // — 이 기능을 배포하기 이전 달은 이력이 없어 재구성이 불가능하다.
+    }
+  } else {
+    const { rows: statsRows } = await query<StatsRow>(
+      `SELECT
+         COUNT(*) AS total,
+         SUM(CASE WHEN u.register_flag = 0 THEN 1 ELSE 0 END) AS pending,
+         SUM(CASE WHEN u.register_flag = 1 AND u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
+         SUM(CASE WHEN u.register_flag = 1 AND u.last_checkin_at IS NOT NULL
+                      AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
+                      AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
+                 THEN 1 ELSE 0 END) AS warn,
+         SUM(CASE WHEN u.register_flag = 1 AND (u.last_checkin_at IS NULL
+                      OR (${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
+                          AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 >= u.interval_hours / 12.0))
+                 THEN 1 ELSE 0 END) AS safe
+       FROM users u
+       ${filterJoin}
+       WHERE u.active_flag = 1 ${f.cond}`,
+      f.params,
+    );
+    const statsRow = statsRows[0];
+    total   = Number(statsRow?.total   ?? 0);
+    pending = Number(statsRow?.pending ?? 0);
+    danger  = Number(statsRow?.danger  ?? 0);
+    warn    = Number(statsRow?.warn    ?? 0);
+    safe    = Number(statsRow?.safe    ?? 0);
+  }
 
   // 3. New subjects joined this month
   const { rows: newJoinedRows } = await query<NewJoinedRow>(
@@ -172,17 +212,42 @@ export async function getMonthlyReport(
 
   // 6. Per-district breakdown
   // Worker count = number of social_workers assigned to that district
-  let districtSql: string;
-  let districtParams: (string | number | null)[];
+  let scopeCond: string | null = null;
+  let scopeParams: (string | number)[] = [];
 
   if (districtIds != null) {
-    if (districtIds.length === 0) {
-      // no districts — return empty
-      districtSql = "SELECT 1 LIMIT 0";
-      districtParams = [];
+    if (districtIds.length > 0) {
+      scopeCond = `d.dist_id IN (${districtIds.map(() => "?").join(",")})`;
+      scopeParams = [...districtIds];
+    }
+  } else if (orgId) {
+    scopeCond = "d.org_id = ?";
+    scopeParams = [orgId];
+  }
+
+  let districtRows: DistrictRow[] = [];
+  if (scopeCond) {
+    if (isPastMonth) {
+      const sql = `
+        SELECT
+          d.name,
+          COUNT(DISTINCT u.user_id) AS total,
+          SUM(CASE WHEN latest.status = 'pending' THEN 1 ELSE 0 END) AS pending,
+          SUM(CASE WHEN latest.status = 'danger'  THEN 1 ELSE 0 END) AS danger,
+          SUM(CASE WHEN latest.status = 'warn'    THEN 1 ELSE 0 END) AS warn,
+          COUNT(DISTINCT CASE WHEN a.role = 'social_worker' AND a.active_flag = 1 AND a.withdraw_flag = 0 THEN a.admin_id END) AS worker_count
+        FROM districts d
+        LEFT JOIN users u ON u.district_id = d.dist_id AND u.active_flag = 1 AND u.joined_at < ?
+        ${LATEST_STATUS_JOIN}
+        LEFT JOIN admin_districts ad ON ad.district_id = d.dist_id
+        LEFT JOIN admins a ON a.admin_id = ad.admin_id
+        WHERE ${scopeCond}
+        GROUP BY d.dist_id, d.name
+        ORDER BY total DESC`;
+      const { rows } = await query<DistrictRow>(sql, [monthEnd, monthEnd, ...scopeParams]);
+      districtRows = rows;
     } else {
-      const ph = districtIds.map(() => "?").join(",");
-      districtSql = `
+      const sql = `
         SELECT
           d.name,
           COUNT(DISTINCT u.user_id) AS total,
@@ -197,40 +262,13 @@ export async function getMonthlyReport(
         LEFT JOIN users u ON u.district_id = d.dist_id AND u.active_flag = 1
         LEFT JOIN admin_districts ad ON ad.district_id = d.dist_id
         LEFT JOIN admins a ON a.admin_id = ad.admin_id
-        WHERE d.dist_id IN (${ph})
+        WHERE ${scopeCond}
         GROUP BY d.dist_id, d.name
         ORDER BY total DESC`;
-      districtParams = [...districtIds];
+      const { rows } = await query<DistrictRow>(sql, scopeParams);
+      districtRows = rows;
     }
-  } else if (orgId) {
-    districtSql = `
-      SELECT
-        d.name,
-        COUNT(DISTINCT u.user_id) AS total,
-        SUM(CASE WHEN u.register_flag = 0 THEN 1 ELSE 0 END) AS pending,
-        SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
-        SUM(CASE WHEN u.last_checkin_at IS NOT NULL
-                     AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
-                     AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
-                THEN 1 ELSE 0 END) AS warn,
-        COUNT(DISTINCT CASE WHEN a.role = 'social_worker' AND a.active_flag = 1 AND a.withdraw_flag = 0 THEN a.admin_id END) AS worker_count
-      FROM districts d
-      LEFT JOIN users u ON u.district_id = d.dist_id AND u.active_flag = 1
-      LEFT JOIN admin_districts ad ON ad.district_id = d.dist_id
-      LEFT JOIN admins a ON a.admin_id = ad.admin_id
-      WHERE d.org_id = ?
-      GROUP BY d.dist_id, d.name
-      ORDER BY total DESC`;
-    districtParams = [orgId];
-  } else {
-    districtSql = "SELECT 1 LIMIT 0";
-    districtParams = [];
   }
-
-  const { rows: districtRows } =
-    districtSql === "SELECT 1 LIMIT 0"
-      ? { rows: [] as DistrictRow[] }
-      : await query<DistrictRow>(districtSql, districtParams);
 
   const districts = districtRows.map((r) => {
     const dTotal     = Number(r.total);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { execute, query } from "@/lib/db";
 import { logAccess } from "@/lib/access-log";
+import { logStatusChange } from "@/lib/status-log";
 import type { RowDataPacket } from "mysql2";
 
 function generateCode(): string {
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
     [name, age, district_id, address, emergency_phone, admin_id, joined_at],
   );
+  await logStatusChange(insertId, "pending");
 
   // 초대코드 자동 생성 (중복 시 재시도)
   let code = "";

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { execute, query } from "@/lib/db";
 import { logAccess } from "@/lib/access-log";
+import { logStatusChange } from "@/lib/status-log";
 import type { RowDataPacket } from "mysql2";
 import * as XLSX from "xlsx";
 
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest) {
          VALUES (?, ?, ?, ?, ?, ?, 1)`,
         [name, age, district?.dist_id ?? null, address, emergencyPhone, joinedAt],
       );
+      await logStatusChange(insertId, "pending");
 
       // 초대코드 발급
       for (let attempt = 0; attempt < 5; attempt++) {

@@ -59,8 +59,33 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log(`[cron/alert] processed=${rows.length}, alerted=${alerted}`);
-    return NextResponse.json({ processed: rows.length, alerted });
+    // 위급/주의 전환은 특정 함수 호출 없이 시간 경과만으로 발생하므로,
+    // 이 주기적 크론에서 전체 등록 대상자의 실시간 상태를 계산해 직전 이력과 다르면 새로 기록한다.
+    // (체크인/앱등록/최초등록은 각 API에서 그 순간 바로 이력을 남기므로 여기서 다루지 않음)
+    const { affectedRows: statusLogged } = await execute(
+      `INSERT INTO user_status_logs (user_id, status, changed_at)
+       SELECT c.user_id, c.computed, NOW()
+       FROM (
+         SELECT u.user_id,
+           CASE
+             WHEN u.last_checkin_at IS NULL THEN 'safe'
+             WHEN NOW() > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 'danger'
+             WHEN TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0 THEN 'warn'
+             ELSE 'safe'
+           END AS computed
+         FROM users u
+         WHERE u.active_flag = 1 AND u.register_flag = 1
+       ) c
+       LEFT JOIN (
+         SELECT user_id, status,
+                ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY changed_at DESC, log_id DESC) AS rn
+         FROM user_status_logs
+       ) latest ON latest.user_id = c.user_id AND latest.rn = 1
+       WHERE COALESCE(latest.status, '') <> c.computed`
+    );
+
+    console.log(`[cron/alert] processed=${rows.length}, alerted=${alerted}, statusLogged=${statusLogged}`);
+    return NextResponse.json({ processed: rows.length, alerted, statusLogged });
   } catch (err) {
     console.error('[GET /api/cron/alert]', err);
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });

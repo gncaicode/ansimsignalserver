@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute, query } from '@/lib/db';
+import { logStatusChange } from '@/lib/status-log';
 import { RowDataPacket } from 'mysql2';
 
 interface InviteCodeRow extends RowDataPacket {
@@ -45,12 +46,15 @@ export async function POST(req: NextRequest) {
     const token = randomUUID();
 
     // 기존 대상자 row에 token 등록 (새 row 생성 안 함)
-    await execute(
+    const { affectedRows } = await execute(
       `UPDATE users
        SET token = ?, lang = ?, register_flag = 1, updated_at = NOW()
        WHERE user_id = ? AND register_flag = 0`,
       [token, lang, invite.user_id]
     );
+    if (affectedRows > 0) {
+      await logStatusChange(invite.user_id, 'safe');
+    }
 
     // 코드 사용 처리
     await execute(

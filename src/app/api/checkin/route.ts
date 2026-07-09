@@ -3,6 +3,7 @@ import { execute } from '@/lib/db';
 import { getUserFromRequest } from '@/lib/auth';
 import { nowKst } from '@/lib/utils';
 import { checkinEmitter } from '@/lib/checkin-events';
+import { logStatusChange } from '@/lib/status-log';
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
        WHERE user_id = ?`,
       [kst, kst, user.user_id]
     );
+    await logStatusChange(user.user_id, 'safe');
 
     // 연결 중인 대시보드에 실시간 갱신 신호 발송
     checkinEmitter.emit('checkin');
