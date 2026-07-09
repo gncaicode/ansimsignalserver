@@ -72,15 +72,14 @@ interface StatsRow extends RowDataPacket {
   safe: number;
 }
 interface NewJoinedRow extends RowDataPacket { cnt: number; }
-interface CheckinRow extends RowDataPacket { checked_in: number; total: number; }
 interface AlertRow extends RowDataPacket { sent: number; }
 interface DistrictRow extends RowDataPacket {
   name: string;
   total: number;
+  pending: number;
   danger: number;
   warn: number;
   worker_count: number;
-  checked_in: number;
 }
 interface ActionRow extends RowDataPacket {
   action_type: string;
@@ -152,19 +151,11 @@ export async function getMonthlyReport(
   );
   const newJoined = Number(newJoinedRows[0]?.cnt ?? 0);
 
-  // 4. Check-in rate for this month
-  // checkedInMonth = subjects who have last_checkin_at within the month
-  const { rows: checkinRows } = await query<CheckinRow>(
-    `SELECT
-       SUM(CASE WHEN u.last_checkin_at >= ? AND u.last_checkin_at < ? THEN 1 ELSE 0 END) AS checked_in,
-       COUNT(*) AS total
-     FROM users u
-     ${filterJoin}
-     WHERE u.active_flag = 1 AND u.register_flag = 1 ${f.cond}`,
-    [monthStart, monthEnd, ...f.params],
-  );
-  const checkedInMonth = Number(checkinRows[0]?.checked_in ?? 0);
-  const checkinTotal   = Number(checkinRows[0]?.total      ?? 0);
+  // 4. Check-in rate — real-time "safe" ratio among subjects expected to check in
+  // (register_flag=0 대기자는 확인 대상이 아니므로 분모에서 제외; danger/warn 대상자가
+  //  있으면 확인율이 자동으로 100% 미만이 되도록 위에서 계산한 실시간 safe/danger/warn을 재사용)
+  const checkinTotal   = total - pending;
+  const checkedInMonth = safe;
   const checkinRate    = checkinTotal > 0 ? Math.round((checkedInMonth / checkinTotal) * 100) : 0;
 
   // 5. Alerts sent this month (alert_sent_at within the month)
@@ -195,13 +186,13 @@ export async function getMonthlyReport(
         SELECT
           d.name,
           COUNT(DISTINCT u.user_id) AS total,
+          SUM(CASE WHEN u.register_flag = 0 THEN 1 ELSE 0 END) AS pending,
           SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
           SUM(CASE WHEN u.last_checkin_at IS NOT NULL
                        AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
                        AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
                   THEN 1 ELSE 0 END) AS warn,
-          COUNT(DISTINCT CASE WHEN a.role = 'social_worker' AND a.active_flag = 1 AND a.withdraw_flag = 0 THEN a.admin_id END) AS worker_count,
-          SUM(CASE WHEN u.last_checkin_at >= ? AND u.last_checkin_at < ? THEN 1 ELSE 0 END) AS checked_in
+          COUNT(DISTINCT CASE WHEN a.role = 'social_worker' AND a.active_flag = 1 AND a.withdraw_flag = 0 THEN a.admin_id END) AS worker_count
         FROM districts d
         LEFT JOIN users u ON u.district_id = d.dist_id AND u.active_flag = 1
         LEFT JOIN admin_districts ad ON ad.district_id = d.dist_id
@@ -209,20 +200,20 @@ export async function getMonthlyReport(
         WHERE d.dist_id IN (${ph})
         GROUP BY d.dist_id, d.name
         ORDER BY total DESC`;
-      districtParams = [monthStart, monthEnd, ...districtIds];
+      districtParams = [...districtIds];
     }
   } else if (orgId) {
     districtSql = `
       SELECT
         d.name,
         COUNT(DISTINCT u.user_id) AS total,
+        SUM(CASE WHEN u.register_flag = 0 THEN 1 ELSE 0 END) AS pending,
         SUM(CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 1 ELSE 0 END) AS danger,
         SUM(CASE WHEN u.last_checkin_at IS NOT NULL
                      AND ${NOW_KST} <= DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)
                      AND TIMESTAMPDIFF(SECOND, ${NOW_KST}, DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR)) / 3600.0 < u.interval_hours / 12.0
                 THEN 1 ELSE 0 END) AS warn,
-        COUNT(DISTINCT CASE WHEN a.role = 'social_worker' AND a.active_flag = 1 AND a.withdraw_flag = 0 THEN a.admin_id END) AS worker_count,
-        SUM(CASE WHEN u.last_checkin_at >= ? AND u.last_checkin_at < ? THEN 1 ELSE 0 END) AS checked_in
+        COUNT(DISTINCT CASE WHEN a.role = 'social_worker' AND a.active_flag = 1 AND a.withdraw_flag = 0 THEN a.admin_id END) AS worker_count
       FROM districts d
       LEFT JOIN users u ON u.district_id = d.dist_id AND u.active_flag = 1
       LEFT JOIN admin_districts ad ON ad.district_id = d.dist_id
@@ -230,7 +221,7 @@ export async function getMonthlyReport(
       WHERE d.org_id = ?
       GROUP BY d.dist_id, d.name
       ORDER BY total DESC`;
-    districtParams = [monthStart, monthEnd, orgId];
+    districtParams = [orgId];
   } else {
     districtSql = "SELECT 1 LIMIT 0";
     districtParams = [];
@@ -242,11 +233,12 @@ export async function getMonthlyReport(
       : await query<DistrictRow>(districtSql, districtParams);
 
   const districts = districtRows.map((r) => {
-    const dTotal      = Number(r.total);
-    const dDanger     = Number(r.danger);
-    const dWarn       = Number(r.warn);
-    const dCheckedIn  = Number(r.checked_in);
-    const dRate       = dTotal > 0 ? Math.round((dCheckedIn / dTotal) * 100) : 0;
+    const dTotal     = Number(r.total);
+    const dPending   = Number(r.pending);
+    const dDanger    = Number(r.danger);
+    const dWarn      = Number(r.warn);
+    const dExpected  = dTotal - dPending;
+    const dRate      = dExpected > 0 ? Math.round(((dExpected - dDanger - dWarn) / dExpected) * 100) : 0;
     return {
       name:         r.name,
       total:        dTotal,
