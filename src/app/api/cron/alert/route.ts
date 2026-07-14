@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
 
       await execute(
         'UPDATE users SET alert_sent_at = ?, status = ? WHERE user_id = ?',
-        [nowKst(), hoursOverdue > 0 ? 'danger' : 'warn', user.user_id]
+        [nowKst(), hoursOverdue > 0 ? 'danger' : 'warning', user.user_id]
       );
     }
 
