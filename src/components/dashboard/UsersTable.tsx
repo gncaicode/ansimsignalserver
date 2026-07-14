@@ -50,6 +50,8 @@ interface Props {
       address: string; addressPlaceholder: string;
       phone: string; phonePlaceholder: string;
       admin: string; adminPlaceholder: string;
+      checkinMode: string; checkinModeManual: string; checkinModeAppOpen: string; checkinModePassive: string;
+      interval: string; intervalSuffix: string;
       cancel: string; save: string; saving: string;
       errorServer: string;
     };
@@ -177,7 +179,7 @@ function ModalInviteCodeButton({ code, copyCode, copied: copiedLabel }: { code: 
 
 export function UsersTable({ users, locale, lang, districts, admins, t, common }: Props) {
   const [editing, setEditing] = useState<UserListItem | null>(null);
-  const [form, setForm] = useState({ name: "", age: "", district_id: "", address: "", emergency_phone: "", admin_id: "" });
+  const [form, setForm] = useState({ name: "", age: "", district_id: "", address: "", emergency_phone: "", admin_id: "", checkin_mode: "manual", interval_hours: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -190,6 +192,8 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
       address:         u.address,
       emergency_phone: u.emergency_phone,
       admin_id:        String(admins.find((a) => a.name === u.admin_name)?.id ?? ""),
+      checkin_mode:    u.checkin_mode,
+      interval_hours:  String(u.interval_hours),
     });
     setError("");
   }
@@ -220,6 +224,8 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
           address:         form.address,
           emergency_phone: form.emergency_phone,
           admin_id:        form.admin_id || null,
+          checkin_mode:    form.checkin_mode,
+          interval_hours:  Number(form.interval_hours),
         }),
       });
       const data = await res.json();
@@ -385,6 +391,25 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
               <div>
                 <Label htmlFor="e-phone">{t.addModal.phone}</Label>
                 <Input id="e-phone" name="emergency_phone" inputMode="tel" placeholder={t.addModal.phonePlaceholder} value={form.emergency_phone} onChange={handle} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="e-checkin-mode">{t.addModal.checkinMode}</Label>
+                  <select id="e-checkin-mode" name="checkin_mode" value={form.checkin_mode} onChange={handle}
+                    className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500">
+                    <option value="manual">{t.addModal.checkinModeManual}</option>
+                    <option value="appOpen">{t.addModal.checkinModeAppOpen}</option>
+                    <option value="passive">{t.addModal.checkinModePassive}</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="e-interval">{t.addModal.interval}</Label>
+                  <div className="flex items-center gap-2">
+                    <Input id="e-interval" name="interval_hours" type="number" min={1} max={168} value={form.interval_hours} onChange={handle} required />
+                    <span className="text-sm text-muted shrink-0">{t.addModal.intervalSuffix}</span>
+                  </div>
+                </div>
               </div>
 
               {/* 담당자 배정 비활성화 — 구역별 복지사 자동 연결로 대체

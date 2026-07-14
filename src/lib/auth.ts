@@ -2,10 +2,13 @@ import { query } from './db';
 import { NextRequest } from 'next/server';
 import { RowDataPacket } from 'mysql2';
 
+export type CheckinMode = 'manual' | 'appOpen' | 'passive';
+
 export interface DbUser extends RowDataPacket {
   user_id: number;
   name: string;
   interval_hours: number;
+  checkin_mode: CheckinMode;
   last_checkin_at: string | null;
   alert_sent_at: string | null;
   status: 'danger' | 'warn' | 'safe';
@@ -38,7 +41,7 @@ export async function getUserFromRequest(req: NextRequest): Promise<DbUser | nul
   if (!token) return null;
 
   const result = await query<DbUser>(
-    `SELECT user_id, name, interval_hours, last_checkin_at, alert_sent_at, status
+    `SELECT user_id, name, interval_hours, checkin_mode, last_checkin_at, alert_sent_at, status
      FROM users WHERE token = ?`,
     [token]
   );
@@ -50,7 +53,7 @@ export async function getUserWithCareWorkers(req: NextRequest): Promise<DbUserWi
   if (!token) return null;
 
   const result = await query<DbUserWithCareWorkers>(
-    `SELECT u.user_id, u.name, u.interval_hours, u.last_checkin_at, u.alert_sent_at, u.status,
+    `SELECT u.user_id, u.name, u.interval_hours, u.checkin_mode, u.last_checkin_at, u.alert_sent_at, u.status,
             GROUP_CONCAT(CONCAT(a.name, '|', COALESCE(a.phone, '')) ORDER BY a.name SEPARATOR '\t') AS care_workers_raw
      FROM users u
      LEFT JOIN admin_districts ad ON u.district_id = ad.district_id

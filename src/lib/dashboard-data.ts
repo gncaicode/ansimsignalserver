@@ -299,6 +299,7 @@ export interface UserListItem {
   last_checkin_at: string | null;
   status: SignalStatus;
   interval_hours: number;
+  checkin_mode: "manual" | "appOpen" | "passive";
   district_name: string | null;
   admin_name: string | null;
   register_flag: number;
@@ -314,6 +315,7 @@ interface UserListRow extends RowDataPacket {
   last_checkin_at: string | null;
   status: string;
   interval_hours: number;
+  checkin_mode: "manual" | "appOpen" | "passive";
   district_name: string | null;
   admin_name: string | null;
   register_flag: number;
@@ -366,7 +368,7 @@ export async function getUsers(
   const { rows } = await query<UserListRow>(
     `SELECT
        u.user_id, u.name, u.age, u.address, u.emergency_phone,
-       u.last_checkin_at, u.status, u.interval_hours, u.register_flag,
+       u.last_checkin_at, u.status, u.interval_hours, u.checkin_mode, u.register_flag,
        d.name AS district_name,
        GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') AS admin_name,
        ic.code AS invite_code
@@ -382,7 +384,7 @@ export async function getUsers(
      )
      WHERE u.active_flag = 1 ${statusCond} ${f.cond} ${searchCond}
      GROUP BY u.user_id, u.name, u.age, u.address, u.emergency_phone,
-              u.last_checkin_at, u.status, u.interval_hours, u.register_flag,
+              u.last_checkin_at, u.status, u.interval_hours, u.checkin_mode, u.register_flag,
               d.name
      ORDER BY
        CASE WHEN u.last_checkin_at IS NOT NULL AND ${NOW_KST} > DATE_ADD(u.last_checkin_at, INTERVAL u.interval_hours HOUR) THEN 0
@@ -411,6 +413,7 @@ interface UserDetailRow extends RowDataPacket {
   emergency_phone: string;
   last_checkin_at: string | null;
   interval_hours: number;
+  checkin_mode: "manual" | "appOpen" | "passive";
   register_flag: number;
   district_name: string | null;
   admin_name: string | null;
@@ -424,6 +427,7 @@ export interface UserDetail {
   emergency_phone: string;
   last_checkin_at: string | null;
   interval_hours: number;
+  checkin_mode: "manual" | "appOpen" | "passive";
   register_flag: number;
   district_name: string | null;
   admin_name: string | null;
@@ -437,7 +441,7 @@ export async function getUserById(
   const { rows } = await query<UserDetailRow>(
     `SELECT
        u.user_id, u.name, u.age, u.address, u.emergency_phone,
-       u.last_checkin_at, u.interval_hours, u.register_flag,
+       u.last_checkin_at, u.interval_hours, u.checkin_mode, u.register_flag,
        d.name AS district_name,
        GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') AS admin_name
      FROM users u
@@ -450,7 +454,7 @@ export async function getUserById(
      WHERE u.user_id = ? AND u.active_flag = 1
        ${orgId ? "AND d.org_id = ?" : ""}
      GROUP BY u.user_id, u.name, u.age, u.address, u.emergency_phone,
-              u.last_checkin_at, u.interval_hours, u.register_flag,
+              u.last_checkin_at, u.interval_hours, u.checkin_mode, u.register_flag,
               d.name
      LIMIT 1`,
     orgId ? [userId, orgId] : [userId],

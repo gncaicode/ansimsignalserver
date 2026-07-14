@@ -7,6 +7,7 @@ import type { RowDataPacket } from "mysql2";
 import * as XLSX from "xlsx";
 
 interface DistrictRow extends RowDataPacket { dist_id: number; name: string; }
+interface OrgDefaultsRow extends RowDataPacket { default_checkin_mode: string; default_interval_hours: number; }
 
 function generateCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -43,6 +44,16 @@ export async function POST(req: NextRequest) {
     orgId ? [orgId] : [],
   );
 
+  // 체크인 방식/주기 기본값 — 기관 설정을 따른다.
+  const { rows: orgDefaultsRows } = orgId
+    ? await query<OrgDefaultsRow>(
+        "SELECT default_checkin_mode, default_interval_hours FROM organizations WHERE org_id = ?",
+        [orgId],
+      )
+    : { rows: [] as OrgDefaultsRow[] };
+  const defaultCheckinMode = orgDefaultsRows[0]?.default_checkin_mode ?? "manual";
+  const defaultIntervalHours = orgDefaultsRows[0]?.default_interval_hours ?? 24;
+
   const joinedAt = new Date().toISOString().slice(0, 10);
   let inserted = 0;
   const errors: string[] = [];
@@ -70,9 +81,9 @@ export async function POST(req: NextRequest) {
     try {
       const { insertId } = await execute(
         `INSERT INTO users
-           (name, age, district_id, address, emergency_phone, joined_at, active_flag)
-         VALUES (?, ?, ?, ?, ?, ?, 1)`,
-        [name, age, district?.dist_id ?? null, address, emergencyPhone, joinedAt],
+           (name, age, district_id, address, emergency_phone, checkin_mode, interval_hours, joined_at, active_flag)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+        [name, age, district?.dist_id ?? null, address, emergencyPhone, defaultCheckinMode, defaultIntervalHours, joinedAt],
       );
       await logStatusChange(insertId, "pending");
 

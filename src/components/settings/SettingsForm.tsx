@@ -12,17 +12,27 @@ interface AdminOption { id: number; name: string; }
 type SettingsT = {
   org: { title: string; name: string; save: string; saving: string; success: string; errorServer: string; };
   district: { title: string; desc: string; placeholder: string; add: string; empty: string; deleteA11y: string; errorServer: string; };
+  checkinDefaults: {
+    title: string; desc: string;
+    mode: string; modeManual: string; modeAppOpen: string; modePassive: string;
+    interval: string; intervalSuffix: string;
+    save: string; saving: string; success: string; errorServer: string;
+  };
   superadmin: { title: string; desc: string; select: string; save: string; saving: string; success: string; errorSelf: string; errorServer: string; };
 };
 
 export function SettingsForm({
   orgName,
+  defaultCheckinMode,
+  defaultIntervalHours,
   districts: initialDistricts,
   admins,
   isSuperadmin,
   t,
 }: {
   orgName: string;
+  defaultCheckinMode: "manual" | "appOpen" | "passive";
+  defaultIntervalHours: number;
   districts: District[];
   admins: AdminOption[];
   isSuperadmin: boolean;
@@ -39,6 +49,13 @@ export function SettingsForm({
   const [distInput, setDistInput] = useState("");
   const [distError, setDistError] = useState("");
   const [distLoading, setDistLoading] = useState(false);
+
+  // 체크인 기본 설정
+  const [checkinMode, setCheckinMode] = useState(defaultCheckinMode);
+  const [intervalHours, setIntervalHours] = useState(String(defaultIntervalHours));
+  const [ckLoading, setCkLoading] = useState(false);
+  const [ckError, setCkError] = useState("");
+  const [ckSuccess, setCkSuccess] = useState(false);
 
   // 최고관리자 변경
   const [selectedAdmin, setSelectedAdmin] = useState("");
@@ -87,6 +104,25 @@ export function SettingsForm({
       if (!res.ok) { setDistError(data.error || t.district.errorServer); return; }
       setDistricts((prev) => prev.filter((d) => d.dist_id !== distId));
     } catch { setDistError(t.district.errorServer); }
+  }
+
+  async function saveCheckinDefaults() {
+    setCkError(""); setCkSuccess(false); setCkLoading(true);
+    try {
+      const res = await fetch("/api/admin/settings/org", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          default_checkin_mode: checkinMode,
+          default_interval_hours: Number(intervalHours),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setCkError(data.error || t.checkinDefaults.errorServer); return; }
+      setCkSuccess(true);
+      setTimeout(() => setCkSuccess(false), 3000);
+    } catch { setCkError(t.checkinDefaults.errorServer); }
+    finally { setCkLoading(false); }
   }
 
   async function changeSuperadmin() {
@@ -173,6 +209,48 @@ export function SettingsForm({
           )}
         </CardContent>
       </Card>
+
+      {/* 체크인 기본 설정 — superadmin 전용 (신규 대상자 등록 시 기본값으로 사용) */}
+      {isSuperadmin && <Card>
+        <CardHeader>
+          <CardTitle>{t.checkinDefaults.title}</CardTitle>
+          <p className="text-xs text-muted">{t.checkinDefaults.desc}</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">{t.checkinDefaults.mode}</label>
+              <select
+                value={checkinMode}
+                onChange={(e) => setCheckinMode(e.target.value as "manual" | "appOpen" | "passive")}
+                className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500"
+              >
+                <option value="manual">{t.checkinDefaults.modeManual}</option>
+                <option value="appOpen">{t.checkinDefaults.modeAppOpen}</option>
+                <option value="passive">{t.checkinDefaults.modePassive}</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">{t.checkinDefaults.interval}</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number" min={1} max={168}
+                  value={intervalHours}
+                  onChange={(e) => setIntervalHours(e.target.value)}
+                />
+                <span className="text-sm text-muted shrink-0">{t.checkinDefaults.intervalSuffix}</span>
+              </div>
+            </div>
+          </div>
+          {ckError && <p className="text-sm text-red-600">{ckError}</p>}
+          {ckSuccess && <p className="text-sm text-status-safe-fg">{t.checkinDefaults.success}</p>}
+          <div className="flex justify-end pt-2">
+            <Button onClick={saveCheckinDefaults} disabled={ckLoading}>
+              {ckLoading ? t.checkinDefaults.saving : t.checkinDefaults.save}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>}
 
       {/* 최고관리자 변경 — superadmin 전용 */}
       {isSuperadmin && <Card className="border-status-warn-border">

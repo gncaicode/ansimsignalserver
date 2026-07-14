@@ -112,6 +112,14 @@ export default async function UserDetailPage(
               />
               <InfoRow label={t.labelLastCheckin} value={lastCheckinDisplay} />
               <InfoRow label={t.labelInterval} value={`${user.interval_hours}${t.intervalSuffix}`} />
+              <InfoRow
+                label={t.labelCheckinMode}
+                value={
+                  user.checkin_mode === "appOpen" ? t.checkinModeAppOpen
+                  : user.checkin_mode === "passive" ? t.checkinModePassive
+                  : t.checkinModeManual
+                }
+              />
             </dl>
           </CardContent>
         </Card>

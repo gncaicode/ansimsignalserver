@@ -7,6 +7,8 @@ interface OrgRow extends RowDataPacket {
   org_id: number;
 }
 
+const CHECKIN_MODES = ["manual", "appOpen", "passive"];
+
 export async function PATCH(req: NextRequest) {
   try {
     const session = await getSession();
@@ -23,12 +25,6 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { name } = body;
-
-    // 유효성 검사
-    if (!name || typeof name !== "string" || !name.trim()) {
-      return NextResponse.json({ error: "기관명은 필수입니다." }, { status: 400 });
-    }
 
     if (!session.organization_id) {
       return NextResponse.json(
@@ -47,7 +43,36 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "기관을 찾을 수 없습니다." }, { status: 404 });
     }
 
-    // 업데이트
+    // 체크인 기본 설정 변경 — 최고관리자만 가능
+    if (body.default_checkin_mode !== undefined || body.default_interval_hours !== undefined) {
+      if (session.role !== "superadmin") {
+        return NextResponse.json({ error: "최고관리자만 변경할 수 있습니다." }, { status: 403 });
+      }
+
+      const defaultCheckinMode = body.default_checkin_mode;
+      const defaultIntervalHours = Number(body.default_interval_hours);
+
+      if (!CHECKIN_MODES.includes(defaultCheckinMode)) {
+        return NextResponse.json({ error: "올바른 체크인 방식을 선택해주세요." }, { status: 400 });
+      }
+      if (!Number.isInteger(defaultIntervalHours) || defaultIntervalHours < 1 || defaultIntervalHours > 168) {
+        return NextResponse.json({ error: "체크인 주기는 1~168 사이의 정수여야 합니다." }, { status: 400 });
+      }
+
+      await execute(
+        "UPDATE organizations SET default_checkin_mode = ?, default_interval_hours = ?, updated_at = NOW() WHERE org_id = ?",
+        [defaultCheckinMode, defaultIntervalHours, session.organization_id]
+      );
+
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
+    // 기관명 변경
+    const { name } = body;
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return NextResponse.json({ error: "기관명은 필수입니다." }, { status: 400 });
+    }
+
     await execute(
       "UPDATE organizations SET name = ?, updated_at = NOW() WHERE org_id = ?",
       [name.trim(), session.organization_id]

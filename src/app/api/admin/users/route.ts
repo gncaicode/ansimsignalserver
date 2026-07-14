@@ -13,6 +13,9 @@ function generateCode(): string {
 }
 
 interface DistrictRow extends RowDataPacket { org_id: number; }
+interface OrgDefaultsRow extends RowDataPacket { default_checkin_mode: string; default_interval_hours: number; }
+
+const CHECKIN_MODES = ["manual", "appOpen", "passive"];
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -43,11 +46,29 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // 체크인 방식/주기 — 지정하지 않으면 기관 기본 설정을 따른다.
+  let checkinMode = body.checkin_mode as string | undefined;
+  let intervalHours = body.interval_hours !== undefined ? Number(body.interval_hours) : undefined;
+  if (checkinMode === undefined || intervalHours === undefined) {
+    const { rows: orgRows } = await query<OrgDefaultsRow>(
+      "SELECT default_checkin_mode, default_interval_hours FROM organizations WHERE org_id = ?",
+      [session.organization_id],
+    );
+    checkinMode ??= orgRows[0]?.default_checkin_mode ?? "manual";
+    intervalHours ??= orgRows[0]?.default_interval_hours ?? 24;
+  }
+  if (!CHECKIN_MODES.includes(checkinMode)) {
+    return NextResponse.json({ error: "올바른 체크인 방식을 선택해주세요." }, { status: 400 });
+  }
+  if (!Number.isInteger(intervalHours) || intervalHours < 1 || intervalHours > 168) {
+    return NextResponse.json({ error: "체크인 주기는 1~168 사이의 정수여야 합니다." }, { status: 400 });
+  }
+
   const { insertId } = await execute(
     `INSERT INTO users
-       (name, age, district_id, address, emergency_phone, admin_id, joined_at, active_flag)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
-    [name, age, district_id, address, emergency_phone, admin_id, joined_at],
+       (name, age, district_id, address, emergency_phone, admin_id, checkin_mode, interval_hours, joined_at, active_flag)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+    [name, age, district_id, address, emergency_phone, admin_id, checkinMode, intervalHours, joined_at],
   );
   await logStatusChange(insertId, "pending");
 

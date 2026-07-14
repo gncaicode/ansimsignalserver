@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
         status:         'unknown',
         user_name:      user.name,
         interval_hours: user.interval_hours,
+        checkin_mode:   user.checkin_mode,
         alert_sent:     false,
         care_workers:   careWorkers,
       });
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
       remaining_hours: Math.max(0, remainingHours),
       alert_sent:      !!user.alert_sent_at,
       interval_hours:  user.interval_hours,
+      checkin_mode:    user.checkin_mode,
       care_workers:    careWorkers,
     });
   } catch (err) {

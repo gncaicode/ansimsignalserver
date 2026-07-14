@@ -18,6 +18,8 @@ interface T {
   address: string; addressPlaceholder: string;
   phone: string; phonePlaceholder: string;
   admin: string; adminPlaceholder: string;
+  checkinMode: string; checkinModeManual: string; checkinModeAppOpen: string; checkinModePassive: string;
+  interval: string; intervalSuffix: string;
   cancel: string; submit: string; submitting: string;
   errorServer: string;
   successTitle: string; inviteCodeLabel: string; goList: string;
@@ -26,15 +28,20 @@ interface T {
 const selectCls = "h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500";
 
 export function UserAddForm({
-  districts, admins, t, lang,
+  districts, admins, defaultCheckinMode, defaultIntervalHours, t, lang,
 }: {
   districts: Option[];
   admins: Option[];
+  defaultCheckinMode: "manual" | "appOpen" | "passive";
+  defaultIntervalHours: number;
   t: T;
   lang: string;
 }) {
   const router = useRouter();
-  const EMPTY = { name: "", age: "", district_id: "", address: "", emergency_phone: "", admin_id: "" };
+  const EMPTY = {
+    name: "", age: "", district_id: "", address: "", emergency_phone: "", admin_id: "",
+    checkin_mode: defaultCheckinMode, interval_hours: String(defaultIntervalHours),
+  };
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -60,6 +67,8 @@ export function UserAddForm({
           address: form.address,
           emergency_phone: form.emergency_phone,
           admin_id: form.admin_id || null,
+          checkin_mode: form.checkin_mode,
+          interval_hours: Number(form.interval_hours),
         }),
       });
       const data = await res.json();
@@ -150,6 +159,24 @@ export function UserAddForm({
             <div>
               <Label htmlFor="emergency_phone">{t.phone}</Label>
               <Input id="emergency_phone" name="emergency_phone" inputMode="tel" placeholder={t.phonePlaceholder} value={form.emergency_phone} onChange={handle} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="checkin_mode">{t.checkinMode}</Label>
+                <select id="checkin_mode" name="checkin_mode" value={form.checkin_mode} onChange={handle} className={selectCls}>
+                  <option value="manual">{t.checkinModeManual}</option>
+                  <option value="appOpen">{t.checkinModeAppOpen}</option>
+                  <option value="passive">{t.checkinModePassive}</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="interval_hours">{t.interval}</Label>
+                <div className="flex items-center gap-2">
+                  <Input id="interval_hours" name="interval_hours" type="number" min={1} max={168} value={form.interval_hours} onChange={handle} required />
+                  <span className="text-sm text-muted shrink-0">{t.intervalSuffix}</span>
+                </div>
+              </div>
             </div>
 
             {/* 담당자 배정 비활성화 — 구역별 복지사 자동 연결로 대체

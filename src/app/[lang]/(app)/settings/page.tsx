@@ -7,7 +7,11 @@ import { getAlertCount, getAdminOptions } from "@/lib/dashboard-data";
 import { SettingsForm } from "@/components/settings/SettingsForm";
 import type { RowDataPacket } from "mysql2";
 
-interface OrgRow extends RowDataPacket { name: string; }
+interface OrgRow extends RowDataPacket {
+  name: string;
+  default_checkin_mode: "manual" | "appOpen" | "passive";
+  default_interval_hours: number;
+}
 interface DistrictRow extends RowDataPacket { dist_id: number; name: string; }
 
 export default async function SettingsPage(props: PageProps<"/[lang]/settings">) {
@@ -26,7 +30,10 @@ export default async function SettingsPage(props: PageProps<"/[lang]/settings">)
 
   const [orgRows, districtResult, admins, alertCount] = await Promise.all([
     orgId
-      ? query<OrgRow>("SELECT name FROM organizations WHERE org_id = ? LIMIT 1", [orgId])
+      ? query<OrgRow>(
+          "SELECT name, default_checkin_mode, default_interval_hours FROM organizations WHERE org_id = ? LIMIT 1",
+          [orgId],
+        )
       : Promise.resolve({ rows: [] as OrgRow[], rowCount: 0 }),
     orgId
       ? query<DistrictRow>("SELECT dist_id, name FROM districts WHERE org_id = ? ORDER BY name", [orgId])
@@ -36,6 +43,8 @@ export default async function SettingsPage(props: PageProps<"/[lang]/settings">)
   ]);
 
   const orgName = orgRows.rows[0]?.name ?? "";
+  const defaultCheckinMode = orgRows.rows[0]?.default_checkin_mode ?? "manual";
+  const defaultIntervalHours = orgRows.rows[0]?.default_interval_hours ?? 24;
   const districts = districtResult.rows;
 
   return (
@@ -57,6 +66,8 @@ export default async function SettingsPage(props: PageProps<"/[lang]/settings">)
       />
       <SettingsForm
         orgName={orgName}
+        defaultCheckinMode={defaultCheckinMode}
+        defaultIntervalHours={defaultIntervalHours}
         districts={districts}
         admins={admins}
         isSuperadmin={isSuperadmin}
