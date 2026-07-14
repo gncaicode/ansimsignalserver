@@ -260,6 +260,47 @@ export async function getActivityLog(orgId: number | null, districtIds?: number[
   ).slice(0, 10);
 }
 
+/* ───────── 설정확인 (앱 설정 테스트 신호) ───────── */
+export interface TestConnectionEntry {
+  userId: number;
+  name: string;
+  district: string;
+  receivedAt: string;
+}
+
+interface TestConnectionRow extends RowDataPacket {
+  user_id: number;
+  name: string;
+  district_name: string | null;
+  last_test_connection_at: string;
+}
+
+export async function getTestConnections(
+  orgId: number | null,
+  districtIds?: number[] | null,
+): Promise<TestConnectionEntry[]> {
+  const f = districtFilter(districtIds, orgId);
+  const { rows } = await query<TestConnectionRow>(
+    `SELECT u.user_id, u.name, u.last_test_connection_at,
+            d.name AS district_name
+     FROM users u
+     LEFT JOIN districts d ON u.district_id = d.dist_id
+     WHERE u.active_flag = 1
+       AND u.last_test_connection_at IS NOT NULL
+       ${f.cond}
+     ORDER BY u.last_test_connection_at DESC
+     LIMIT 15`,
+    f.params,
+  );
+
+  return rows.map((r) => ({
+    userId:     r.user_id,
+    name:       r.name,
+    district:   r.district_name ?? "",
+    receivedAt: toIsoKst(r.last_test_connection_at),
+  }));
+}
+
 /* ───────── 기관명 ───────── */
 interface OrgRow extends RowDataPacket { name: string; }
 

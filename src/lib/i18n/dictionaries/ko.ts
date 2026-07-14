@@ -413,6 +413,11 @@ const dict = {
         "안심동 5통",
       ],
     },
+    testConnection: {
+      title: "설정확인",
+      desc: "대상자가 앱에서 연결 확인을 요청한 결과입니다.",
+      empty: "아직 연결 확인 요청이 없습니다.",
+    },
   },
 
   users: {

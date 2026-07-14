@@ -419,6 +419,11 @@ const dict: typeof ko = {
         "桃ヶ丘5丁目",
       ],
     },
+    testConnection: {
+      title: "接続確認",
+      desc: "対象者がアプリから接続確認をリクエストした結果です。",
+      empty: "まだ接続確認のリクエストはありません。",
+    },
   },
 
   users: {

@@ -3,6 +3,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
 import { CriticalAlertList } from "@/components/dashboard/CriticalAlertList";
 import { ActivityLog } from "@/components/dashboard/ActivityLog";
+import { TestConnectionList } from "@/components/dashboard/TestConnectionList";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardRefresher } from "@/components/dashboard/DashboardRefresher";
@@ -16,6 +17,7 @@ import {
   getCriticalUsers,
   getDistrictBreakdown,
   getActivityLog,
+  getTestConnections,
   getOrgName,
   getAlertCount,
 } from "@/lib/dashboard-data";
@@ -35,12 +37,13 @@ export default async function DashboardPage(
     logAccess({ adminId: session.admin_id, action: "view_dashboard", headers: await headers() });
   }
 
-  const [stats, criticalUsers, districtBreakdown, activityLog, orgName, alertCount] =
+  const [stats, criticalUsers, districtBreakdown, activityLog, testConnections, orgName, alertCount] =
     await Promise.all([
       getDashboardStats(orgId, districtIds),
       getCriticalUsers(orgId, districtIds),
       getDistrictBreakdown(orgId, districtIds),
       getActivityLog(orgId, districtIds),
+      getTestConnections(orgId, districtIds),
       getOrgName(orgId),
       getAlertCount(orgId, districtIds),
     ]);
@@ -92,7 +95,14 @@ export default async function DashboardPage(
             lang={lang}
             labels={t.activity}
           />
-          <DistrictBreakdown labels={t.district} data={districtBreakdown} />
+          <div className="space-y-6">
+            <DistrictBreakdown labels={t.district} data={districtBreakdown} />
+            <TestConnectionList
+              entries={testConnections}
+              locale={lang}
+              labels={t.testConnection}
+            />
+          </div>
         </div>
       </main>
     </>
