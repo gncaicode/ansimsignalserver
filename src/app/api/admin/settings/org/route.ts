@@ -8,6 +8,7 @@ interface OrgRow extends RowDataPacket {
 }
 
 const CHECKIN_MODES = ["manual", "appOpen", "passive"];
+const INTERVAL_HOURS_OPTIONS = [12, 24];
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -55,8 +56,8 @@ export async function PATCH(req: NextRequest) {
       if (!CHECKIN_MODES.includes(defaultCheckinMode)) {
         return NextResponse.json({ error: "올바른 체크인 방식을 선택해주세요." }, { status: 400 });
       }
-      if (!Number.isInteger(defaultIntervalHours) || defaultIntervalHours < 1 || defaultIntervalHours > 168) {
-        return NextResponse.json({ error: "체크인 주기는 1~168 사이의 정수여야 합니다." }, { status: 400 });
+      if (!INTERVAL_HOURS_OPTIONS.includes(defaultIntervalHours)) {
+        return NextResponse.json({ error: "체크인 주기는 12시간 또는 24시간 중에서 선택해주세요." }, { status: 400 });
       }
 
       await execute(

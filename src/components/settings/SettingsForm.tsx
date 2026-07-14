@@ -232,14 +232,14 @@ export function SettingsForm({
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{t.checkinDefaults.interval}</label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number" min={1} max={168}
-                  value={intervalHours}
-                  onChange={(e) => setIntervalHours(e.target.value)}
-                />
-                <span className="text-sm text-muted shrink-0">{t.checkinDefaults.intervalSuffix}</span>
-              </div>
+              <select
+                value={intervalHours}
+                onChange={(e) => setIntervalHours(e.target.value)}
+                className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500"
+              >
+                <option value="12">{`12${t.checkinDefaults.intervalSuffix}`}</option>
+                <option value="24">{`24${t.checkinDefaults.intervalSuffix}`}</option>
+              </select>
             </div>
           </div>
           {ckError && <p className="text-sm text-red-600">{ckError}</p>}

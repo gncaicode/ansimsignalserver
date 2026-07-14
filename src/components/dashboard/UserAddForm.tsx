@@ -172,10 +172,10 @@ export function UserAddForm({
               </div>
               <div>
                 <Label htmlFor="interval_hours">{t.interval}</Label>
-                <div className="flex items-center gap-2">
-                  <Input id="interval_hours" name="interval_hours" type="number" min={1} max={168} value={form.interval_hours} onChange={handle} required />
-                  <span className="text-sm text-muted shrink-0">{t.intervalSuffix}</span>
-                </div>
+                <select id="interval_hours" name="interval_hours" value={form.interval_hours} onChange={handle} className={selectCls}>
+                  <option value="12">{`12${t.intervalSuffix}`}</option>
+                  <option value="24">{`24${t.intervalSuffix}`}</option>
+                </select>
               </div>
             </div>
 

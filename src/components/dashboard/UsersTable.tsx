@@ -405,10 +405,11 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
                 </div>
                 <div>
                   <Label htmlFor="e-interval">{t.addModal.interval}</Label>
-                  <div className="flex items-center gap-2">
-                    <Input id="e-interval" name="interval_hours" type="number" min={1} max={168} value={form.interval_hours} onChange={handle} required />
-                    <span className="text-sm text-muted shrink-0">{t.addModal.intervalSuffix}</span>
-                  </div>
+                  <select id="e-interval" name="interval_hours" value={form.interval_hours} onChange={handle}
+                    className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500">
+                    <option value="12">{`12${t.addModal.intervalSuffix}`}</option>
+                    <option value="24">{`24${t.addModal.intervalSuffix}`}</option>
+                  </select>
                 </div>
               </div>
 

@@ -13,6 +13,7 @@ interface UserRow extends RowDataPacket {
 }
 
 const CHECKIN_MODES = ["manual", "appOpen", "passive"];
+const INTERVAL_HOURS_OPTIONS = [12, 24];
 
 async function getUserForOrgCheck(userId: number, orgId: number | null): Promise<UserRow | null> {
   const { rows } = await query<UserRow>(
@@ -59,8 +60,8 @@ export async function PATCH(
   if (!CHECKIN_MODES.includes(checkin_mode)) {
     return NextResponse.json({ error: "올바른 체크인 방식을 선택해주세요." }, { status: 400 });
   }
-  if (!Number.isInteger(interval_hours) || interval_hours < 1 || interval_hours > 168) {
-    return NextResponse.json({ error: "체크인 주기는 1~168 사이의 정수여야 합니다." }, { status: 400 });
+  if (!INTERVAL_HOURS_OPTIONS.includes(interval_hours)) {
+    return NextResponse.json({ error: "체크인 주기는 12시간 또는 24시간 중에서 선택해주세요." }, { status: 400 });
   }
 
   await execute(
