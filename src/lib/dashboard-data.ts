@@ -173,7 +173,7 @@ export async function getDistrictBreakdown(orgId: number | null, districtIds?: n
      WHERE u.active_flag = 1 AND u.register_flag = 1
        ${f.cond}
      GROUP BY d.dist_id, d.name
-     ORDER BY total DESC`,
+     ORDER BY total DESC, d.name ASC`,
     f.params
   );
 

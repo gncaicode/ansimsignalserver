@@ -243,7 +243,7 @@ export async function getMonthlyReport(
         LEFT JOIN admins a ON a.admin_id = ad.admin_id
         WHERE ${scopeCond}
         GROUP BY d.dist_id, d.name
-        ORDER BY total DESC`;
+        ORDER BY total DESC, d.name ASC`;
       const { rows } = await query<DistrictRow>(sql, [monthEnd, monthEnd, ...scopeParams]);
       districtRows = rows;
     } else {
@@ -264,7 +264,7 @@ export async function getMonthlyReport(
         LEFT JOIN admins a ON a.admin_id = ad.admin_id
         WHERE ${scopeCond}
         GROUP BY d.dist_id, d.name
-        ORDER BY total DESC`;
+        ORDER BY total DESC, d.name ASC`;
       const { rows } = await query<DistrictRow>(sql, scopeParams);
       districtRows = rows;
     }
