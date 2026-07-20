@@ -41,21 +41,23 @@ export async function GET(req: NextRequest) {
     let alerted = 0;
 
     for (const user of rows) {
-      const lastCheckin  = new Date(user.last_checkin_at.replace(' ', 'T') + '+09:00');
-      const hoursOverdue = Math.floor((Date.now() - lastCheckin.getTime()) / 3_600_000) - user.interval_hours;
+      const lastCheckin    = new Date(user.last_checkin_at.replace(' ', 'T') + '+09:00');
+      const deadline       = lastCheckin.getTime() + user.interval_hours * 3_600_000;
+      const minutesOverdue = Math.max(0, Math.floor((Date.now() - deadline) / 60_000));
 
       if (user.admin_emails) {
         try {
-          await sendAlertEmail(user.admin_emails, user.name, hoursOverdue);
+          await sendAlertEmail(user.admin_emails, user.name, minutesOverdue);
           alerted++;
         } catch (mailErr) {
           console.error(`[cron/alert] 메일 발송 실패 (user ${user.user_id}):`, mailErr);
         }
       }
 
+      // 이 쿼리는 이미 기한(interval_hours)을 지난 사용자만 대상으로 하므로 항상 'danger'
       await execute(
         'UPDATE users SET alert_sent_at = ?, status = ? WHERE user_id = ?',
-        [nowKst(), hoursOverdue > 0 ? 'danger' : 'warning', user.user_id]
+        [nowKst(), 'danger', user.user_id]
       );
     }
 
