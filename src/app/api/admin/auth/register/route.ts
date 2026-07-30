@@ -3,7 +3,6 @@ import { execute, query } from '@/lib/db';
 import { RowDataPacket } from 'mysql2';
 import bcrypt from 'bcrypt';
 
-interface OrgRow extends RowDataPacket { org_id: number; }
 interface EmailRow extends RowDataPacket { email: string; }
 
 export async function POST(req: NextRequest) {
@@ -44,21 +43,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '이미 사용 중인 이메일입니다.' }, { status: 409 });
     }
 
-    // 기관 조회 또는 생성
-    let orgId: number;
-    const orgResult = await query<OrgRow>(
-      'SELECT org_id FROM organizations WHERE name = ?',
+    // 기관 신규 생성 (기관명이 같아도 가입할 때마다 별도 기관으로 등록)
+    const created = await execute(
+      'INSERT INTO organizations (name) VALUES (?)',
       [org]
     );
-    if (orgResult.rows.length > 0) {
-      orgId = orgResult.rows[0].org_id;
-    } else {
-      const created = await execute(
-        'INSERT INTO organizations (name) VALUES (?)',
-        [org]
-      );
-      orgId = created.insertId;
-    }
+    const orgId = created.insertId;
 
     // 비밀번호 해싱
     const passwordHash = await bcrypt.hash(password, 12);

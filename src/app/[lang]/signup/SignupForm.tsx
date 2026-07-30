@@ -17,7 +17,7 @@ type SignupDict = {
   labelPhone: string; placeholderPhone: string;
   labelPassword: string; placeholderPassword: string;
   labelPassword2: string;
-  terms: { required1: string; viewTerms: string; required2: string; optional: string };
+  terms: { required1: string; viewTerms: string; required2: string; viewPrivacy: string; optional: string };
   submit: string;
   hasAccount: string; hasAccountCta: string;
 };
@@ -137,24 +137,39 @@ export function SignupForm({ lang, t }: { lang: string; t: SignupDict }) {
       <div className="rounded-lg border border-border bg-surface-muted/60 p-4 space-y-2.5 text-sm">
         <label className="flex items-start gap-2.5">
           <input id="agree_terms" type="checkbox"
-            className="mt-0.5 h-4 w-4 rounded border-border-strong text-trust-700 focus:ring-trust-500"
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-strong text-trust-700 focus:ring-trust-500"
             checked={form.agree_terms} onChange={handle} required />
           <span>
             {t.terms.required1}
-            <Link href="#" className="ml-1 text-trust-700 underline-offset-2 hover:underline">
+            <Link
+              href={`/${lang}/terms`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-1 text-trust-700 underline-offset-2 hover:underline"
+            >
               {t.terms.viewTerms}
             </Link>
           </span>
         </label>
         <label className="flex items-start gap-2.5">
           <input id="agree_privacy" type="checkbox"
-            className="mt-0.5 h-4 w-4 rounded border-border-strong text-trust-700 focus:ring-trust-500"
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-strong text-trust-700 focus:ring-trust-500"
             checked={form.agree_privacy} onChange={handle} required />
-          <span>{t.terms.required2}</span>
+          <span>
+            {t.terms.required2}
+            <Link
+              href={`/${lang}/privacy`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-1 text-trust-700 underline-offset-2 hover:underline"
+            >
+              {t.terms.viewPrivacy}
+            </Link>
+          </span>
         </label>
-        <label className="flex items-start gap-2.5">
+        <label className="hidden items-start gap-2.5">
           <input id="agree_marketing" type="checkbox"
-            className="mt-0.5 h-4 w-4 rounded border-border-strong text-trust-700 focus:ring-trust-500"
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-strong text-trust-700 focus:ring-trust-500"
             checked={form.agree_marketing} onChange={handle} />
           <span>{t.terms.optional}</span>
         </label>

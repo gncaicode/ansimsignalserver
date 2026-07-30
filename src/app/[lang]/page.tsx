@@ -289,6 +289,34 @@ export default async function LandingPage(props: PageProps<"/[lang]">) {
         </div>
       </section>
 
+      {/* ============= FAQ ============= */}
+      <section id="faq" className="border-b border-border bg-white scroll-mt-16">
+        <div className="mx-auto max-w-7xl px-6 py-20">
+          <div className="max-w-2xl">
+            <Badge tone="trust">{t.faq.badge}</Badge>
+            <h2 className="mt-3 text-3xl md:text-4xl font-extrabold tracking-tight">
+              {t.faq.title}
+            </h2>
+          </div>
+
+          <div className="mt-10 divide-y divide-border rounded-xl border border-border bg-white">
+            {t.faq.items.map((item) => (
+              <details key={item.q} className="group p-5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-foreground">
+                  {item.q}
+                  <span className="shrink-0 text-trust-700 transition-transform group-open:rotate-45">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                  </span>
+                </summary>
+                <p className="mt-3 text-sm text-muted leading-relaxed">{item.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ============= CTA ============= */}
       <section id="contact" className="bg-trust-900 text-white scroll-mt-16">
         <div className="mx-auto max-w-7xl px-6 py-20 grid lg:grid-cols-[1.2fr_1fr] gap-12 items-center">
@@ -366,7 +394,7 @@ function FeatureCard({
         {icon}
       </div>
       <h3 className="mt-4 text-base font-bold">{title}</h3>
-      <p className="mt-2 text-sm text-muted leading-relaxed">{desc}</p>
+      <p className="mt-2 text-sm text-muted leading-relaxed whitespace-pre-line">{desc}</p>
     </div>
   );
 }
