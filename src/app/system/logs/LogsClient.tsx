@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { LogIn, ShieldAlert, LogOut, Download, Smartphone } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Download } from "lucide-react";
+import { SystemSidebar } from "@/components/system/SystemSidebar";
 
 type Org = { org_id: number; name: string };
 
@@ -74,7 +75,9 @@ function actionBadge(action: string) {
 
 export function LogsClient() {
   const router = useRouter();
-  const [menu, setMenu] = useState<MenuKey>("access");
+  const searchParams = useSearchParams();
+  const initialMenu = searchParams.get("menu") === "personal" ? "personal" : "access";
+  const [menu, setMenu] = useState<MenuKey>(initialMenu);
   const [logs, setLogs] = useState<Log[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -123,11 +126,6 @@ export function LogsClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menu]);
 
-  async function logout() {
-    await fetch("/api/system/auth/logout", { method: "POST" });
-    router.push("/system/login");
-  }
-
   function resetFilters() {
     setOrg(""); setAction(""); setDateFrom(""); setDateTo(""); setAdminName("");
   }
@@ -149,71 +147,7 @@ export function LogsClient() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* 사이드바 */}
-      <aside className="w-60 shrink-0 bg-white border-r border-gray-200 flex flex-col">
-        {/* 로고 */}
-        <div className="px-5 py-5 border-b border-gray-100">
-          <div className="flex items-center gap-2.5">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-trust-700">
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-white" aria-hidden="true">
-                <path d="M12 2.5 4 5.2v6.1c0 4.7 3.4 8.7 8 10.2 4.6-1.5 8-5.5 8-10.2V5.2L12 2.5Z" fill="currentColor" opacity="0.95" />
-                <path d="M9.5 12.5h2l1-2.5 2 5 1-2.5h2" stroke="#16A34A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-            <div className="leading-tight">
-              <div className="text-[13px] font-extrabold tracking-tight text-trust-700">안심시그널</div>
-              <div className="text-[10px] font-medium tracking-widest text-gray-400">SYSTEM</div>
-            </div>
-          </div>
-        </div>
-
-        {/* 메뉴 */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          <p className="px-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">로그 조회</p>
-          <button
-            onClick={() => setMenu("access")}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              menu === "access"
-                ? "bg-blue-50 text-blue-700"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            <LogIn className="h-4 w-4 shrink-0" />
-            접속 로그
-          </button>
-          <button
-            onClick={() => setMenu("personal")}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              menu === "personal"
-                ? "bg-red-50 text-red-700"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            <ShieldAlert className="h-4 w-4 shrink-0" />
-            개인정보 접근 로그
-          </button>
-
-          <p className="px-2 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">관리</p>
-          <button
-            onClick={() => router.push("/system/app-version")}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            <Smartphone className="h-4 w-4 shrink-0" />
-            앱 버전 관리
-          </button>
-        </nav>
-
-        {/* 로그아웃 */}
-        <div className="px-3 py-4 border-t border-gray-100">
-          <button
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
-          >
-            <LogOut className="h-4 w-4 shrink-0" />
-            로그아웃
-          </button>
-        </div>
-      </aside>
+      <SystemSidebar active={menu} onSelectLogMenu={setMenu} />
 
       {/* 메인 컨텐츠 */}
       <div className="flex-1 flex flex-col min-w-0">

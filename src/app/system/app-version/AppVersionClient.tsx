@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Smartphone, LogOut, ArrowLeft } from "lucide-react";
+import { Smartphone } from "lucide-react";
+import { SystemSidebar } from "@/components/system/SystemSidebar";
 
 type Platform = "ios" | "android";
 
@@ -105,7 +105,6 @@ function PlatformCard({ row, onSaved }: { row: VersionRow; onSaved: (row: Versio
 }
 
 export function AppVersionClient() {
-  const router = useRouter();
   const [rows, setRows] = useState<VersionRow[] | null>(null);
   const [error, setError] = useState("");
 
@@ -119,46 +118,29 @@ export function AppVersionClient() {
       .catch(() => setError("서버와 통신할 수 없습니다."));
   }, []);
 
-  async function logout() {
-    await fetch("/api/system/auth/logout", { method: "POST" });
-    router.push("/system/login");
-  }
-
   function handleSaved(updated: VersionRow) {
     setRows((prev) => prev?.map((r) => (r.platform === updated.platform ? updated : r)) ?? null);
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <div>
-          <button
-            onClick={() => router.push("/system/logs")}
-            className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 mb-1"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            시스템 로그 조회로
-          </button>
+    <div className="flex min-h-screen bg-gray-50">
+      <SystemSidebar active="app-version" />
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
           <h1 className="text-base font-bold text-gray-900">앱 버전 관리</h1>
           <p className="text-xs text-gray-500 mt-0.5">
             안심시그널 앱의 강제 업데이트 기준 버전과 스토어 링크를 관리합니다.
           </p>
-        </div>
-        <button
-          onClick={logout}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700"
-        >
-          <LogOut className="h-4 w-4" />
-          로그아웃
-        </button>
-      </header>
+        </header>
 
-      <div className="p-6 max-w-2xl w-full mx-auto space-y-4">
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {rows === null && !error && <p className="text-sm text-gray-400">불러오는 중...</p>}
-        {rows?.map((row) => (
-          <PlatformCard key={row.platform} row={row} onSaved={handleSaved} />
-        ))}
+        <div className="p-6 max-w-2xl w-full space-y-4">
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          {rows === null && !error && <p className="text-sm text-gray-400">불러오는 중...</p>}
+          {rows?.map((row) => (
+            <PlatformCard key={row.platform} row={row} onSaved={handleSaved} />
+          ))}
+        </div>
       </div>
     </div>
   );
