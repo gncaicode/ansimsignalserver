@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { execute, query } from "@/lib/db";
+import { execute, query, withTransaction } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import type { RowDataPacket } from "mysql2";
 
 interface TargetRow extends RowDataPacket { role: string; organization_id: number; }
+interface DistrictRow extends RowDataPacket { dist_id: number; }
 
 const ALLOWED_ROLES = ["admin", "social_worker", "viewer"];
 
@@ -37,41 +38,42 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const body = await req.json().catch(() => ({}));
-    const { type } = body;
+    const { name, phone, position, department, role } = body;
 
-    if (type === "role") {
-      const { role } = body;
-      if (!ALLOWED_ROLES.includes(role)) {
-        return NextResponse.json({ error: "올바른 권한을 선택해주세요." }, { status: 400 });
-      }
-      await execute("UPDATE admins SET role = ? WHERE admin_id = ?", [role, adminId]);
-      return NextResponse.json({ success: true });
+    if (!name?.trim()) return NextResponse.json({ error: "이름을 입력해주세요." }, { status: 400 });
+    if (!ALLOWED_ROLES.includes(role)) {
+      return NextResponse.json({ error: "올바른 권한을 선택해주세요." }, { status: 400 });
     }
 
-    if (type === "info") {
-      const { name, phone, position, department } = body;
-      if (!name?.trim()) return NextResponse.json({ error: "이름을 입력해주세요." }, { status: 400 });
-      await execute(
-        "UPDATE admins SET name = ?, phone = ?, position = ?, department = ? WHERE admin_id = ?",
-        [name.trim(), phone ?? "", position ?? "", department ?? "", adminId]
+    const rawIds = Array.isArray(body.district_ids) ? body.district_ids : [];
+    const districtIds: number[] = rawIds.map(Number).filter((n: number) => !isNaN(n) && n > 0);
+    if (districtIds.length > 0 && role !== "social_worker") {
+      return NextResponse.json({ error: "복지사에게만 구역을 배정할 수 있습니다." }, { status: 400 });
+    }
+    if (districtIds.length > 0) {
+      const { rows: validDistricts } = await query<DistrictRow>(
+        `SELECT dist_id FROM districts WHERE dist_id IN (${districtIds.map(() => "?").join(",")}) AND org_id = ?`,
+        [...districtIds, target.organization_id]
       );
-      return NextResponse.json({ success: true });
+      if (validDistricts.length !== districtIds.length) {
+        return NextResponse.json({ error: "잘못된 구역입니다." }, { status: 400 });
+      }
     }
 
-    if (type === "district") {
-      if (target.role !== "social_worker") {
-        return NextResponse.json({ error: "복지사에게만 구역을 배정할 수 있습니다." }, { status: 400 });
-      }
-      const rawIds = Array.isArray(body.district_ids) ? body.district_ids : [];
-      const districtIds: number[] = rawIds.map(Number).filter((n: number) => !isNaN(n) && n > 0);
-      await execute("DELETE FROM admin_districts WHERE admin_id = ?", [adminId]);
+    // 정보·권한·구역 배정을 하나의 트랜잭션으로 묶어서, 중간에 실패해도 부분 반영되지 않게 한다.
+    // 역할이 social_worker가 아니면 구역 배정은 항상 비운다(과거 역할에서 남은 배정이 잔존하지 않도록).
+    await withTransaction(async (conn) => {
+      await conn.execute(
+        "UPDATE admins SET name = ?, phone = ?, position = ?, department = ?, role = ? WHERE admin_id = ?",
+        [name.trim(), phone ?? "", position ?? "", department ?? "", role, adminId]
+      );
+      await conn.execute("DELETE FROM admin_districts WHERE admin_id = ?", [adminId]);
       for (const did of districtIds) {
-        await execute("INSERT INTO admin_districts (admin_id, district_id) VALUES (?, ?)", [adminId, did]);
+        await conn.execute("INSERT INTO admin_districts (admin_id, district_id) VALUES (?, ?)", [adminId, did]);
       }
-      return NextResponse.json({ success: true });
-    }
+    });
 
-    return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[PATCH /api/admin/managers/[id]]", err);
     return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 });

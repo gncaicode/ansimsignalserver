@@ -1,21 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, MapPin } from "lucide-react";
+import { Plus, Trash2, MapPin, Pencil, Check, X } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { BulkImportModal } from "@/components/dashboard/BulkImportModal";
+import { IntervalHoursSelect } from "@/components/dashboard/IntervalHoursSelect";
 
 interface District { dist_id: number; name: string; }
 interface AdminOption { id: number; name: string; }
 
 type SettingsT = {
   org: { title: string; name: string; save: string; saving: string; success: string; errorServer: string; };
-  district: { title: string; desc: string; placeholder: string; add: string; empty: string; deleteA11y: string; errorServer: string; };
+  district: { title: string; desc: string; placeholder: string; add: string; empty: string; deleteA11y: string; editA11y: string; saveA11y: string; cancelA11y: string; errorServer: string; importBtn: string; };
+  districtImportModal: {
+    title: string;
+    templateLabel: string; templateDesc: string; templateBtn: string;
+    dropLabel: string; dropDesc: string;
+    successMsg: string;
+    errorCount: string;
+    cancel: string; submit: string; submitting: string;
+    errorServer: string;
+  };
   checkinDefaults: {
     title: string; desc: string;
     mode: string; modeManual: string; modeAppOpen: string; modePassive: string;
-    interval: string; intervalSuffix: string;
+    interval: string; intervalSuffix: string; intervalOther: string;
     save: string; saving: string; success: string; errorServer: string;
   };
   superadmin: { title: string; desc: string; select: string; save: string; saving: string; success: string; errorSelf: string; errorServer: string; };
@@ -49,6 +60,9 @@ export function SettingsForm({
   const [distInput, setDistInput] = useState("");
   const [distError, setDistError] = useState("");
   const [distLoading, setDistLoading] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
 
   // 체크인 기본 설정
   const [checkinMode, setCheckinMode] = useState(defaultCheckinMode);
@@ -94,6 +108,35 @@ export function SettingsForm({
       setDistInput("");
     } catch { setDistError(t.district.errorServer); }
     finally { setDistLoading(false); }
+  }
+
+  function startEditDistrict(d: District) {
+    setDistError("");
+    setEditingId(d.dist_id);
+    setEditValue(d.name);
+  }
+
+  function cancelEditDistrict() {
+    setEditingId(null);
+    setEditValue("");
+  }
+
+  async function saveEditDistrict(distId: number) {
+    if (!editValue.trim()) return;
+    setDistError(""); setEditLoading(true);
+    try {
+      const res = await fetch(`/api/admin/districts/${distId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editValue.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setDistError(data.error || t.district.errorServer); return; }
+      setDistricts((prev) => prev.map((d) => (d.dist_id === distId ? { ...d, name: data.name } : d)));
+      setEditingId(null);
+      setEditValue("");
+    } catch { setDistError(t.district.errorServer); }
+    finally { setEditLoading(false); }
   }
 
   async function removeDistrict(distId: number) {
@@ -168,11 +211,21 @@ export function SettingsForm({
       {/* 관할 구역 관리 */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-trust-700" />
-            {t.district.title}
-          </CardTitle>
-          <p className="text-xs text-muted">{t.district.desc}</p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-trust-700" />
+                {t.district.title}
+              </CardTitle>
+              <p className="mt-1 text-xs text-muted">{t.district.desc}</p>
+            </div>
+            <BulkImportModal
+              btnLabel={t.district.importBtn}
+              t={t.districtImportModal}
+              templateUrl="/api/admin/districts/template"
+              importUrl="/api/admin/districts/import"
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
@@ -193,18 +246,58 @@ export function SettingsForm({
             <p className="text-sm text-muted py-2">{t.district.empty}</p>
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border overflow-hidden">
-              {districts.map((d) => (
-                <li key={d.dist_id} className="flex items-center justify-between px-4 py-2.5 bg-white hover:bg-surface-muted/40">
-                  <span className="text-sm font-medium">{d.name}</span>
-                  <button
-                    onClick={() => removeDistrict(d.dist_id)}
-                    className="text-muted hover:text-red-600 transition-colors"
-                    aria-label={t.district.deleteA11y}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </li>
-              ))}
+              {districts.map((d) =>
+                editingId === d.dist_id ? (
+                  <li key={d.dist_id} className="flex items-center gap-2 px-4 py-2 bg-white">
+                    <Input
+                      autoFocus
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveEditDistrict(d.dist_id);
+                        if (e.key === "Escape") cancelEditDistrict();
+                      }}
+                      className="h-8 max-w-sm"
+                    />
+                    <button
+                      onClick={() => saveEditDistrict(d.dist_id)}
+                      disabled={editLoading || !editValue.trim()}
+                      className="text-muted hover:text-status-safe-fg transition-colors disabled:opacity-50"
+                      aria-label={t.district.saveA11y}
+                    >
+                      <Check className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={cancelEditDistrict}
+                      disabled={editLoading}
+                      className="text-muted hover:text-red-600 transition-colors"
+                      aria-label={t.district.cancelA11y}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </li>
+                ) : (
+                  <li key={d.dist_id} className="flex items-center justify-between px-4 py-2.5 bg-white hover:bg-surface-muted/40">
+                    <span className="text-sm font-medium">{d.name}</span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => startEditDistrict(d)}
+                        className="text-muted hover:text-trust-700 transition-colors"
+                        aria-label={t.district.editA11y}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => removeDistrict(d.dist_id)}
+                        className="text-muted hover:text-red-600 transition-colors"
+                        aria-label={t.district.deleteA11y}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </li>
+                )
+              )}
             </ul>
           )}
         </CardContent>
@@ -232,14 +325,13 @@ export function SettingsForm({
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{t.checkinDefaults.interval}</label>
-              <select
+              <IntervalHoursSelect
                 value={intervalHours}
-                onChange={(e) => setIntervalHours(e.target.value)}
+                onChange={setIntervalHours}
+                intervalSuffix={t.checkinDefaults.intervalSuffix}
+                otherLabel={t.checkinDefaults.intervalOther}
                 className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500"
-              >
-                <option value="12">{`12${t.checkinDefaults.intervalSuffix}`}</option>
-                <option value="24">{`24${t.checkinDefaults.intervalSuffix}`}</option>
-              </select>
+              />
             </div>
           </div>
           {ckError && <p className="text-sm text-red-600">{ckError}</p>}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { execute, query } from "@/lib/db";
 import { logAccess } from "@/lib/access-log";
+import { isValidIntervalHours } from "@/lib/validation";
 import type { RowDataPacket } from "mysql2";
 
 interface UserRow extends RowDataPacket {
@@ -13,7 +14,6 @@ interface UserRow extends RowDataPacket {
 }
 
 const CHECKIN_MODES = ["manual", "appOpen", "passive"];
-const INTERVAL_HOURS_OPTIONS = [12, 24];
 
 async function getUserForOrgCheck(userId: number, orgId: number | null): Promise<UserRow | null> {
   const { rows } = await query<UserRow>(
@@ -60,8 +60,8 @@ export async function PATCH(
   if (!CHECKIN_MODES.includes(checkin_mode)) {
     return NextResponse.json({ error: "올바른 체크인 방식을 선택해주세요." }, { status: 400 });
   }
-  if (!INTERVAL_HOURS_OPTIONS.includes(interval_hours)) {
-    return NextResponse.json({ error: "체크인 주기는 12시간 또는 24시간 중에서 선택해주세요." }, { status: 400 });
+  if (!isValidIntervalHours(interval_hours)) {
+    return NextResponse.json({ error: "체크인 주기는 12~48시간 사이로 입력해주세요." }, { status: 400 });
   }
 
   await execute(

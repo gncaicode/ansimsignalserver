@@ -13,34 +13,53 @@ interface DistrictOption { id: number; name: string; }
 interface T {
   title: string;
   name: string; namePlaceholder: string;
-  email: string; emailPlaceholder: string;
-  password: string; passwordPlaceholder: string;
+  email: string;
   phone: string; phonePlaceholder: string;
   position: string; positionPlaceholder: string;
   department: string; departmentPlaceholder: string;
   role: string; rolePlaceholder: string;
   districtLabel: string; districtEmpty: string;
-  cancel: string; submit: string; submitting: string;
-  errorServer: string; successMsg: string;
+  save: string; saving: string; cancel: string;
+  errorServer: string;
+  deleteBtn: string;
+  deleteConfirmTitle: string; deleteConfirmBody: string;
+  deleteConfirmBtn: string; deleting: string; deleteCancelBtn: string;
 }
 
 const selectCls = "h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500";
 
-const EMPTY = { name: "", email: "", password: "", phone: "", position: "", department: "", role: "" };
-
-export function ManagerAddForm({
-  roles, districtOptions, t, lang,
+export function ManagerEditForm({
+  adminId, email, initial, roles, districtOptions, t, lang,
 }: {
+  adminId: number;
+  email: string;
+  initial: {
+    name: string;
+    phone: string;
+    position: string;
+    department: string;
+    role: string;
+    district_ids: number[];
+  };
   roles: RoleOption[];
   districtOptions: DistrictOption[];
   t: T;
   lang: string;
 }) {
   const router = useRouter();
-  const [form, setForm] = useState(EMPTY);
-  const [districtIds, setDistrictIds] = useState<number[]>([]);
+  const [form, setForm] = useState({
+    name: initial.name,
+    phone: initial.phone,
+    position: initial.position,
+    department: initial.department,
+    role: initial.role,
+  });
+  const [districtIds, setDistrictIds] = useState<number[]>(initial.district_ids);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   function handle(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target;
@@ -55,21 +74,42 @@ export function ManagerAddForm({
     e.preventDefault();
     setError(""); setLoading(true);
     try {
-      const res = await fetch("/api/admin/managers", {
-        method: "POST",
+      const res = await fetch(`/api/admin/managers/${adminId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
+          name: form.name,
+          phone: form.phone,
+          position: form.position,
+          department: form.department,
+          role: form.role,
           district_ids: form.role === "social_worker" ? districtIds : [],
         }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || t.errorServer); return; }
+
       router.push(`/${lang}/managers`);
+      router.refresh();
     } catch {
       setError(t.errorServer);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function confirmDelete() {
+    setDeleteError(""); setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/managers/${adminId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) { setDeleteError(data.error || t.errorServer); return; }
+      router.push(`/${lang}/managers`);
+      router.refresh();
+    } catch {
+      setDeleteError(t.errorServer);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -87,13 +127,8 @@ export function ManagerAddForm({
             </div>
 
             <div>
-              <Label htmlFor="email">{t.email}</Label>
-              <Input id="email" name="email" type="email" placeholder={t.emailPlaceholder} value={form.email} onChange={handle} required />
-            </div>
-
-            <div>
-              <Label htmlFor="password">{t.password}</Label>
-              <Input id="password" name="password" type="password" placeholder={t.passwordPlaceholder} value={form.password} onChange={handle} required />
+              <Label>{t.email}</Label>
+              <Input value={email} disabled />
             </div>
 
             <div>
@@ -147,17 +182,51 @@ export function ManagerAddForm({
 
             {error && <p className="text-sm text-red-600">{error}</p>}
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => router.push(`/${lang}/managers`)}>
-                {t.cancel}
+            <div className="flex items-center justify-between gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-red-200 text-red-600 hover:bg-red-50"
+                onClick={() => { setDeleteError(""); setDeleteOpen(true); }}
+              >
+                {t.deleteBtn}
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? t.submitting : t.submit}
-              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => router.push(`/${lang}/managers`)}>
+                  {t.cancel}
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? t.saving : t.save}
+                </Button>
+              </div>
             </div>
           </form>
         </CardContent>
       </Card>
+
+      {deleteOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setDeleteOpen(false)} />
+          <div className="relative z-10 w-full max-w-md rounded-xl bg-white shadow-xl p-6">
+            <h2 className="text-lg font-bold mb-2">{t.deleteConfirmTitle}</h2>
+            <p className="text-sm text-muted mb-1 font-semibold">{form.name}</p>
+            <p className="text-sm text-gray-600 mb-4">{t.deleteConfirmBody}</p>
+            {deleteError && <p className="mb-2 text-sm text-red-600">{deleteError}</p>}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+                {t.deleteCancelBtn}
+              </Button>
+              <Button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {deleting ? t.deleting : t.deleteConfirmBtn}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

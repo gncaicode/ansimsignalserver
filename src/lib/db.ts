@@ -35,3 +35,21 @@ export async function execute(
   const [result] = await getPool().execute<ResultSetHeader>(sql, params);
   return { affectedRows: result.affectedRows, insertId: result.insertId };
 }
+
+// 여러 쿼리를 하나의 DB 트랜잭션으로 묶는다 — 중간에 실패하면 전부 롤백된다.
+export async function withTransaction<T>(
+  fn: (conn: mysql.PoolConnection) => Promise<T>
+): Promise<T> {
+  const conn = await getPool().getConnection();
+  try {
+    await conn.beginTransaction();
+    const result = await fn(conn);
+    await conn.commit();
+    return result;
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}

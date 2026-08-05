@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { IntervalHoursSelect } from "./IntervalHoursSelect";
 
 interface Option { id: number; name: string; }
 
@@ -19,7 +20,7 @@ interface T {
   phone: string; phonePlaceholder: string;
   admin: string; adminPlaceholder: string;
   checkinMode: string; checkinModeManual: string; checkinModeAppOpen: string; checkinModePassive: string;
-  interval: string; intervalSuffix: string;
+  interval: string; intervalSuffix: string; intervalOther: string;
   cancel: string; submit: string; submitting: string;
   errorServer: string;
   successTitle: string; inviteCodeLabel: string; goList: string;
@@ -172,10 +173,15 @@ export function UserAddForm({
               </div>
               <div>
                 <Label htmlFor="interval_hours">{t.interval}</Label>
-                <select id="interval_hours" name="interval_hours" value={form.interval_hours} onChange={handle} className={selectCls}>
-                  <option value="12">{`12${t.intervalSuffix}`}</option>
-                  <option value="24">{`24${t.intervalSuffix}`}</option>
-                </select>
+                <IntervalHoursSelect
+                  id="interval_hours"
+                  name="interval_hours"
+                  value={form.interval_hours}
+                  onChange={(v) => setForm((p) => ({ ...p, interval_hours: v }))}
+                  intervalSuffix={t.intervalSuffix}
+                  otherLabel={t.intervalOther}
+                  className={selectCls}
+                />
               </div>
             </div>
 

@@ -260,7 +260,7 @@ export async function getActivityLog(orgId: number | null, districtIds?: number[
   ).slice(0, 10);
 }
 
-/* ───────── 설정확인 (앱 설정 테스트 신호) ───────── */
+/* ───────── 통신확인 (앱 설정 테스트 신호, 오늘 것만·최신 15건) ───────── */
 export interface TestConnectionEntry {
   userId: number;
   name: string;
@@ -287,6 +287,8 @@ export async function getTestConnections(
      LEFT JOIN districts d ON u.district_id = d.dist_id
      WHERE u.active_flag = 1
        AND u.last_test_connection_at IS NOT NULL
+       AND u.last_test_connection_at >= CURDATE()
+       AND u.last_test_connection_at <  CURDATE() + INTERVAL 1 DAY
        ${f.cond}
      ORDER BY u.last_test_connection_at DESC
      LIMIT 15`,
@@ -650,4 +652,42 @@ export async function getAdmins(orgId: number | null): Promise<AdminListItem[]> 
     district_ids:   r.district_ids_str ? r.district_ids_str.split(",").map(Number) : [],
     district_names: r.district_names ?? null,
   }));
+}
+
+export async function getAdminById(adminId: number, orgId: number | null): Promise<AdminListItem | null> {
+  const { rows } = await query<AdminListRow>(
+    `SELECT
+       a.admin_id, a.name, a.email, a.phone, a.position, a.department,
+       a.role, a.active_flag, a.withdraw_flag, a.joined_at,
+       o.name AS org_name,
+       GROUP_CONCAT(ad.district_id ORDER BY d.name SEPARATOR ',') AS district_ids_str,
+       GROUP_CONCAT(d.name         ORDER BY d.name SEPARATOR ', ') AS district_names
+     FROM admins a
+     LEFT JOIN organizations  o  ON a.organization_id = o.org_id
+     LEFT JOIN admin_districts ad ON a.admin_id = ad.admin_id
+     LEFT JOIN districts       d  ON ad.district_id = d.dist_id
+     WHERE a.withdraw_flag = 0
+       AND a.admin_id = ?
+       ${orgId ? "AND a.organization_id = ?" : ""}
+     GROUP BY a.admin_id, a.name, a.email, a.phone, a.position, a.department,
+              a.role, a.active_flag, a.withdraw_flag, a.joined_at, o.name`,
+    orgId ? [adminId, orgId] : [adminId],
+  );
+  if (rows.length === 0) return null;
+  const r = rows[0];
+  return {
+    admin_id:       r.admin_id,
+    name:           r.name,
+    email:          r.email,
+    phone:          r.phone,
+    position:       r.position,
+    department:     r.department,
+    role:           ROLE_MAP[r.role] ?? "viewer",
+    dbRole:         r.role,
+    approvalStatus: toApprovalStatus(r.active_flag, r.withdraw_flag),
+    org_name:       r.org_name,
+    joined_at:      r.joined_at,
+    district_ids:   r.district_ids_str ? r.district_ids_str.split(",").map(Number) : [],
+    district_names: r.district_names ?? null,
+  };
 }

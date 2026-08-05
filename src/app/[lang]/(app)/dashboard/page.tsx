@@ -10,8 +10,6 @@ import { DashboardRefresher } from "@/components/dashboard/DashboardRefresher";
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { formatLongDateTime } from "@/lib/i18n/format";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
-import { logAccess } from "@/lib/access-log";
-import { headers } from "next/headers";
 import {
   getDashboardStats,
   getCriticalUsers,
@@ -33,10 +31,6 @@ export default async function DashboardPage(
   const orgId = session?.organization_id ?? null;
   const districtIds = session?.role === "social_worker" ? (session?.district_ids ?? []) : null;
 
-  if (session) {
-    logAccess({ adminId: session.admin_id, action: "view_dashboard", headers: await headers() });
-  }
-
   const [stats, criticalUsers, districtBreakdown, activityLog, testConnections, orgName, alertCount] =
     await Promise.all([
       getDashboardStats(orgId, districtIds),
@@ -53,7 +47,7 @@ export default async function DashboardPage(
 
   return (
     <>
-      <DashboardRefresher />
+      <DashboardRefresher logAction="view_dashboard" />
       <AppHeader
         title={t.title}
         description={t.updated(today)}

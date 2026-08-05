@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { execute, query } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { isDemoAccount } from "@/lib/demo-account";
 import type { RowDataPacket } from "mysql2";
 
 interface AdminRow extends RowDataPacket {
@@ -13,6 +14,10 @@ export async function PATCH(req: NextRequest) {
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    }
+
+    if (isDemoAccount(session.email)) {
+      return NextResponse.json({ error: "체험 계정은 비밀번호를 변경할 수 없습니다." }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));

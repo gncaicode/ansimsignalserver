@@ -2,12 +2,15 @@ import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { getDictionary, hasLocale } from "@/lib/i18n";
 import { getSession, getAdminHeaderInfo } from "@/lib/session";
-import { getOrgName, getAlertCount, getDistrictOptions } from "@/lib/dashboard-data";
-import { ManagerAddForm } from "@/components/dashboard/ManagerAddForm";
+import { getOrgName, getAlertCount, getAdminById, getDistrictOptions } from "@/lib/dashboard-data";
+import { ManagerEditForm } from "@/components/dashboard/ManagerEditForm";
 
-export default async function ManagerNewPage(props: PageProps<"/[lang]/managers/new">) {
-  const { lang } = await props.params;
+export default async function ManagerEditPage(props: PageProps<"/[lang]/managers/[id]">) {
+  const { lang, id } = await props.params;
   if (!hasLocale(lang)) notFound();
+
+  const adminId = Number(id);
+  if (!Number.isInteger(adminId) || adminId <= 0) notFound();
 
   const [dict, session] = await Promise.all([getDictionary(lang), getSession()]);
   if (!session) notFound();
@@ -16,6 +19,9 @@ export default async function ManagerNewPage(props: PageProps<"/[lang]/managers/
   const t = dict.managers;
   const adminInfo = getAdminHeaderInfo(session, lang);
   const orgId = session.organization_id ?? null;
+
+  const target = await getAdminById(adminId, orgId);
+  if (!target || target.dbRole === "superadmin") notFound();
 
   const [orgName, alertCount, districtOptions] = await Promise.all([
     getOrgName(orgId),
@@ -32,7 +38,7 @@ export default async function ManagerNewPage(props: PageProps<"/[lang]/managers/
   return (
     <>
       <AppHeader
-        title={t.addModal.title}
+        title={t.editPage.title}
         orgName={orgName}
         locale={lang}
         alertCount={alertCount}
@@ -45,10 +51,20 @@ export default async function ManagerNewPage(props: PageProps<"/[lang]/managers/
           userInitial: adminInfo.userInitial,
         }}
       />
-      <ManagerAddForm
+      <ManagerEditForm
+        adminId={target.admin_id}
+        email={target.email}
+        initial={{
+          name: target.name,
+          phone: target.phone ?? "",
+          position: target.position ?? "",
+          department: target.department ?? "",
+          role: target.dbRole,
+          district_ids: target.district_ids,
+        }}
         roles={roleOptions}
         districtOptions={districtOptions}
-        t={t.addModal}
+        t={t.editPage}
         lang={lang}
       />
     </>

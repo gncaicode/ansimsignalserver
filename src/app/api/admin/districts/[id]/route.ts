@@ -4,6 +4,46 @@ import { query, execute } from "@/lib/db";
 import type { RowDataPacket } from "mysql2";
 
 interface DistrictRow extends RowDataPacket { org_id: number; }
+interface DistrictNameRow extends RowDataPacket { dist_id: number; }
+
+// 구역명 수정
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+  if (!["superadmin", "admin"].includes(session.role)) {
+    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const distId = Number(id);
+
+  const { name } = await req.json();
+  const trimmed = String(name ?? "").trim();
+  if (!trimmed) return NextResponse.json({ error: "구역명을 입력해주세요." }, { status: 400 });
+
+  // 본인 기관 소속 구역인지 확인
+  const { rows } = await query<DistrictRow>(
+    "SELECT org_id FROM districts WHERE dist_id = ?",
+    [distId],
+  );
+  if (rows.length === 0) return NextResponse.json({ error: "존재하지 않는 구역입니다." }, { status: 404 });
+  if (rows[0].org_id !== session.organization_id) {
+    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  }
+
+  // 중복 확인 (자기 자신 제외)
+  const { rows: dupRows } = await query<DistrictNameRow>(
+    "SELECT dist_id FROM districts WHERE org_id = ? AND name = ? AND dist_id != ?",
+    [session.organization_id, trimmed, distId],
+  );
+  if (dupRows.length > 0) return NextResponse.json({ error: "이미 존재하는 구역명입니다." }, { status: 409 });
+
+  await execute("UPDATE districts SET name = ? WHERE dist_id = ?", [trimmed, distId]);
+  return NextResponse.json({ dist_id: distId, name: trimmed });
+}
 
 // 구역 삭제
 export async function DELETE(

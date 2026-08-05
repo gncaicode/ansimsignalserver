@@ -14,6 +14,7 @@ type LoginDict = {
   forgot: string;
   remember: string;
   submit: string;
+  testLogin: string; testLoginLoading: string;
   noAccount: string; noAccountCta: string;
   legalNote: string;
 };
@@ -24,6 +25,7 @@ export function LoginForm({ lang, t }: { lang: string; t: LoginDict }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [testLoading, setTestLoading] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,6 +47,24 @@ export function LoginForm({ lang, t }: { lang: string; t: LoginDict }) {
       setError("서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function testLogin() {
+    setError("");
+    setTestLoading(true);
+    try {
+      const res = await fetch("/api/admin/auth/test-login", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "오류가 발생했습니다.");
+        return;
+      }
+      router.push(`/${lang}/dashboard`);
+    } catch {
+      setError("서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setTestLoading(false);
     }
   }
 
@@ -84,9 +104,20 @@ export function LoginForm({ lang, t }: { lang: string; t: LoginDict }) {
         <p className="text-sm text-red-600 text-center">{error}</p>
       )}
 
-      <Button type="submit" size="lg" className="w-full" disabled={loading}>
+      <Button type="submit" size="lg" className="w-full" disabled={loading || testLoading}>
         <Lock className="h-4 w-4" />
         {loading ? "로그인 중..." : t.submit}
+      </Button>
+
+      <Button
+        type="button"
+        variant="outline"
+        size="lg"
+        className="w-full"
+        disabled={loading || testLoading}
+        onClick={testLogin}
+      >
+        {testLoading ? t.testLoginLoading : t.testLogin}
       </Button>
 
       <div className="text-center text-sm text-muted">

@@ -18,11 +18,12 @@ interface T {
   confirm: string; confirmPlaceholder: string;
   pwSave: string; pwSaving: string; pwSuccess: string;
   errorMismatch: string; errorLength: string; errorServer: string;
+  demoNotice: string;
 }
 
 interface Profile { name: string; phone: string; position: string; department: string; }
 
-export function ProfileForm({ profile: initial, t }: { profile: Profile; t: T }) {
+export function ProfileForm({ profile: initial, t, isDemo }: { profile: Profile; t: T; isDemo?: boolean }) {
   // 기본 정보
   const [form, setForm] = useState(initial);
   const [infoLoading, setInfoLoading] = useState(false);
@@ -113,25 +114,31 @@ export function ProfileForm({ profile: initial, t }: { profile: Profile; t: T })
           <CardTitle>{t.pwTitle}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">{t.current}</label>
-            <Input type="password" value={pw.current} onChange={(e) => setPw((p) => ({ ...p, current: e.target.value }))} placeholder={t.currentPlaceholder} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">{t.newPw}</label>
-            <Input type="password" value={pw.newPw} onChange={(e) => setPw((p) => ({ ...p, newPw: e.target.value }))} placeholder={t.newPlaceholder} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">{t.confirm}</label>
-            <Input type="password" value={pw.confirm} onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))} placeholder={t.confirmPlaceholder} />
-          </div>
-          {pwError && <p className="text-sm text-red-600">{pwError}</p>}
-          {pwSuccess && <p className="text-sm text-status-safe-fg">{t.pwSuccess}</p>}
-          <div className="flex justify-end pt-2">
-            <Button onClick={savePassword} disabled={pwLoading}>
-              {pwLoading ? t.pwSaving : t.pwSave}
-            </Button>
-          </div>
+          {isDemo ? (
+            <p className="rounded-lg bg-surface-muted px-4 py-3 text-sm text-muted">{t.demoNotice}</p>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1">{t.current}</label>
+                <Input type="password" value={pw.current} onChange={(e) => setPw((p) => ({ ...p, current: e.target.value }))} placeholder={t.currentPlaceholder} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">{t.newPw}</label>
+                <Input type="password" value={pw.newPw} onChange={(e) => setPw((p) => ({ ...p, newPw: e.target.value }))} placeholder={t.newPlaceholder} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">{t.confirm}</label>
+                <Input type="password" value={pw.confirm} onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))} placeholder={t.confirmPlaceholder} />
+              </div>
+              {pwError && <p className="text-sm text-red-600">{pwError}</p>}
+              {pwSuccess && <p className="text-sm text-status-safe-fg">{t.pwSuccess}</p>}
+              <div className="flex justify-end pt-2">
+                <Button onClick={savePassword} disabled={pwLoading}>
+                  {pwLoading ? t.pwSaving : t.pwSave}
+                </Button>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </main>

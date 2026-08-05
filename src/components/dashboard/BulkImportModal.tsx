@@ -14,7 +14,17 @@ interface T {
   errorServer: string;
 }
 
-export function BulkImportModal({ btnLabel, t }: { btnLabel: string; t: T }) {
+export function BulkImportModal({
+  btnLabel,
+  t,
+  templateUrl = "/api/admin/users/template",
+  importUrl = "/api/admin/users/import",
+}: {
+  btnLabel: string;
+  t: T;
+  templateUrl?: string;
+  importUrl?: string;
+}) {
   const [open, setOpen]       = useState(false);
   const [file, setFile]       = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -39,7 +49,7 @@ export function BulkImportModal({ btnLabel, t }: { btnLabel: string; t: T }) {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/admin/users/import", { method: "POST", body: fd });
+      const res = await fetch(importUrl, { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
       setResult(data);
@@ -78,7 +88,7 @@ export function BulkImportModal({ btnLabel, t }: { btnLabel: string; t: T }) {
                   <span className="font-medium">{t.templateLabel}</span>
                   <span className="text-xs text-muted">{t.templateDesc}</span>
                 </div>
-                <a href="/api/admin/users/template" download>
+                <a href={templateUrl} download>
                   <Button variant="outline" size="sm">
                     <Download className="h-3.5 w-3.5" />
                     {t.templateBtn}

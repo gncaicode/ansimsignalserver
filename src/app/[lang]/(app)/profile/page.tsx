@@ -5,6 +5,7 @@ import { getSession, getAdminHeaderInfo } from "@/lib/session";
 import { query } from "@/lib/db";
 import { getOrgName, getAlertCount } from "@/lib/dashboard-data";
 import { ProfileForm } from "@/components/profile/ProfileForm";
+import { isDemoAccount } from "@/lib/demo-account";
 import type { RowDataPacket } from "mysql2";
 
 interface ProfileRow extends RowDataPacket {
@@ -53,7 +54,7 @@ export default async function ProfilePage(props: PageProps<"/[lang]/profile">) {
           userInitial: adminInfo.userInitial,
         }}
       />
-      <ProfileForm profile={profile} t={t} />
+      <ProfileForm profile={profile} t={t} isDemo={isDemoAccount(session.email)} />
     </>
   );
 }

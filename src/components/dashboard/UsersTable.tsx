@@ -12,6 +12,9 @@ import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "@/components/ui/table";
 import { formatRelativeTime, formatShortDateTime } from "@/lib/i18n/format";
+import { copyToClipboard } from "@/lib/clipboard";
+import { IntervalHoursSelect } from "./IntervalHoursSelect";
+import { DeepLinkCopyButton, InviteQrPanel, InviteQrTrigger } from "./InviteQrCode";
 import type { Locale } from "@/lib/i18n";
 import type { UserListItem } from "@/lib/dashboard-data";
 
@@ -24,6 +27,10 @@ interface CommonT {
   appJoinedDesc: string;
   copyCode: string;
   copied: string;
+  copyDeepLink: string;
+  showQrCode: string;
+  qrCode: string;
+  downloadQrCode: string;
   reinvite: string;
   reinviting: string;
   cancel: string;
@@ -51,31 +58,12 @@ interface Props {
       phone: string; phonePlaceholder: string;
       admin: string; adminPlaceholder: string;
       checkinMode: string; checkinModeManual: string; checkinModeAppOpen: string; checkinModePassive: string;
-      interval: string; intervalSuffix: string;
+      interval: string; intervalSuffix: string; intervalOther: string;
       cancel: string; save: string; saving: string;
       errorServer: string;
     };
   };
   common: CommonT;
-}
-
-function copyToClipboard(text: string, onSuccess: () => void) {
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(onSuccess).catch(() => execCopy(text, onSuccess));
-  } else {
-    execCopy(text, onSuccess);
-  }
-}
-
-function execCopy(text: string, onSuccess: () => void) {
-  const el = document.createElement("textarea");
-  el.value = text;
-  el.style.position = "fixed";
-  el.style.opacity = "0";
-  document.body.appendChild(el);
-  el.select();
-  try { document.execCommand("copy"); onSuccess(); } catch { /* silent */ }
-  document.body.removeChild(el);
 }
 
 function InviteCodeCell({ code, copyCode, copied: copiedLabel }: { code: string; copyCode: string; copied: string }) {
@@ -90,7 +78,7 @@ function InviteCodeCell({ code, copyCode, copied: copiedLabel }: { code: string;
     <button
       onClick={copy}
       title={copyCode}
-      className="mt-0.5 flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-mono font-medium text-trust-700 bg-trust-50 hover:bg-trust-100 transition-colors"
+      className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-mono font-medium text-trust-700 bg-trust-50 hover:bg-trust-100 transition-colors"
     >
       {copied ? <Check className="h-3 w-3 shrink-0" /> : <Copy className="h-3 w-3 shrink-0" />}
       <span>{copied ? copiedLabel : code}</span>
@@ -99,44 +87,24 @@ function InviteCodeCell({ code, copyCode, copied: copiedLabel }: { code: string;
 }
 
 function ReinviteButton({
-  userId, reinvite, reinviting, copyCode, copied: copiedLabel,
+  userId, reinvite, reinviting,
 }: {
-  userId: number; reinvite: string; reinviting: string; copyCode: string; copied: string;
+  userId: number; reinvite: string; reinviting: string;
 }) {
   const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [newCode, setNewCode] = useState<string | null>(null);
 
   async function handleReinvite() {
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/users/${userId}/reinvite`, { method: "POST" });
       const data = await res.json();
-      if (!res.ok || !data.code) return;
-      setNewCode(data.code);
-      copyToClipboard(data.code, () => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      });
-    } finally {
+      if (!res.ok || !data.code) { setLoading(false); return; }
+      // 서버가 register_flag를 0(대기)으로 리셋하므로, 새로고침해서 표준 대기 행 UI(링크복사/QR/코드)로 반영한다.
+      copyToClipboard(data.code, () => {});
+      window.location.reload();
+    } catch {
       setLoading(false);
     }
-  }
-
-  if (newCode) {
-    return (
-      <div className="mt-0.5 flex items-center gap-1.5">
-        <span className="font-mono text-xs font-semibold text-trust-700 tracking-wider">{newCode}</span>
-        <button
-          type="button"
-          onClick={() => copyToClipboard(newCode, () => { setCopied(true); setTimeout(() => setCopied(false), 1500); })}
-          className="flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-medium text-trust-700 bg-trust-50 hover:bg-trust-100 transition-colors"
-        >
-          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-          {copied ? copiedLabel : copyCode}
-        </button>
-      </div>
-    );
   }
 
   return (
@@ -145,8 +113,8 @@ function ReinviteButton({
       disabled={loading}
       className="mt-0.5 flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-status-warn-fg bg-status-warn-bg hover:opacity-80 transition-colors disabled:opacity-50"
     >
-      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-      {loading ? reinviting : copied ? copiedLabel : reinvite}
+      <Copy className="h-3 w-3" />
+      {loading ? reinviting : reinvite}
     </button>
   );
 }
@@ -249,7 +217,7 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
             <TableHead className="w-[60px] text-center">{t.columns.age}</TableHead>
             <TableHead>{t.columns.district}</TableHead>
             <TableHead>{t.columns.contact}</TableHead>
-            <TableHead className="w-[100px]">{t.columns.caseworker}</TableHead>
+            <TableHead className="w-[140px]">{t.columns.caseworker}</TableHead>
             <TableHead className="w-[90px] text-center">{t.columns.interval}</TableHead>
             <TableHead className="w-[170px]">{t.columns.lastCheck}</TableHead>
             <TableHead className="w-[80px]" />
@@ -283,12 +251,29 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
                         userId={u.user_id}
                         reinvite={common.reinvite}
                         reinviting={common.reinviting}
-                        copyCode={common.copyCode}
-                        copied={common.copied}
                       />
                     </>
                   ) : u.invite_code ? (
-                    <InviteCodeCell code={u.invite_code} copyCode={common.copyCode} copied={common.copied} />
+                    <div className="mt-0.5 flex flex-col gap-1">
+                      <div className="flex items-center gap-1">
+                        <DeepLinkCopyButton
+                          code={u.invite_code}
+                          copyDeepLink={common.copyDeepLink}
+                          copied={common.copied}
+                        />
+                        <InviteQrTrigger
+                          code={u.invite_code}
+                          showQrCode={common.showQrCode}
+                          panelLabels={{
+                            copyDeepLink: common.copyDeepLink,
+                            copied: common.copied,
+                            qrCode: common.qrCode,
+                            downloadQrCode: common.downloadQrCode,
+                          }}
+                        />
+                      </div>
+                      <InviteCodeCell code={u.invite_code} copyCode={common.copyCode} copied={common.copied} />
+                    </div>
                   ) : null}
                 </TableCell>
                 <TableCell className="text-center">
@@ -405,11 +390,15 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
                 </div>
                 <div>
                   <Label htmlFor="e-interval">{t.addModal.interval}</Label>
-                  <select id="e-interval" name="interval_hours" value={form.interval_hours} onChange={handle}
-                    className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500">
-                    <option value="12">{`12${t.addModal.intervalSuffix}`}</option>
-                    <option value="24">{`24${t.addModal.intervalSuffix}`}</option>
-                  </select>
+                  <IntervalHoursSelect
+                    id="e-interval"
+                    name="interval_hours"
+                    value={form.interval_hours}
+                    onChange={(v) => setForm((prev) => ({ ...prev, interval_hours: v }))}
+                    intervalSuffix={t.addModal.intervalSuffix}
+                    otherLabel={t.addModal.intervalOther}
+                    className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-trust-500"
+                  />
                 </div>
               </div>
 
@@ -429,7 +418,18 @@ export function UsersTable({ users, locale, lang, districts, admins, t, common }
                   {common.appJoinedDesc}
                 </div>
               ) : editing.invite_code ? (
-                <ModalInviteCodeButton code={editing.invite_code} copyCode={common.copyCode} copied={common.copied} />
+                <div className="space-y-3">
+                  <ModalInviteCodeButton code={editing.invite_code} copyCode={common.copyCode} copied={common.copied} />
+                  <InviteQrPanel
+                    code={editing.invite_code}
+                    labels={{
+                      copyDeepLink: common.copyDeepLink,
+                      copied: common.copied,
+                      qrCode: common.qrCode,
+                      downloadQrCode: common.downloadQrCode,
+                    }}
+                  />
+                </div>
               ) : null}
 
               {error && <p className="text-sm text-red-600">{error}</p>}

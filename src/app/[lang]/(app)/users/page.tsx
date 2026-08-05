@@ -36,18 +36,26 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
 
   const adminInfo = getAdminHeaderInfo(session, lang);
 
-  const [{ users, total }, { total: pendingCount }, orgName, districtOptions, adminOptions, alertCount] = await Promise.all([
+  const [
+    { users, total },
+    { total: allCount },
+    { total: pendingCount },
+    { total: dangerCount },
+    { total: warnCount },
+    { total: safeCount },
+    orgName, districtOptions, adminOptions, alertCount,
+  ] = await Promise.all([
     getUsers(orgId, statusFilter, page, PAGE_SIZE, q || undefined, districtIds),
+    getUsers(orgId, "all", 1, 1, undefined, districtIds),
     getUsers(orgId, "pending", 1, 1, undefined, districtIds),
+    getUsers(orgId, "danger", 1, 1, undefined, districtIds),
+    getUsers(orgId, "warn", 1, 1, undefined, districtIds),
+    getUsers(orgId, "safe", 1, 1, undefined, districtIds),
     getOrgName(orgId),
     getDistrictOptions(orgId),
     getAdminOptions(orgId),
     getAlertCount(orgId, districtIds),
   ]);
-
-  const dangerCount = users.filter((u) => u.status === "danger").length;
-  const warnCount   = users.filter((u) => u.status === "warn").length;
-  const safeCount   = users.filter((u) => u.status === "safe").length;
   const totalPages  = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
@@ -55,7 +63,7 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
       <DashboardRefresher />
       <AppHeader
         title={t.title}
-        description={t.desc(users.length, total)}
+        description={t.desc(users.length, allCount)}
         orgName={orgName}
         locale={lang}
         alertCount={alertCount}
@@ -83,7 +91,7 @@ export default async function UsersPage(props: PageProps<"/[lang]/users">) {
           </form>
 
           <div className="flex flex-wrap items-center gap-2">
-            <FilterPill href={`/${lang}/users?status=all${q ? `&q=${encodeURIComponent(q)}` : ""}`}        label={t.filterAll}     count={total}        active={statusFilter === "all"} />
+            <FilterPill href={`/${lang}/users?status=all${q ? `&q=${encodeURIComponent(q)}` : ""}`}        label={t.filterAll}     count={allCount}     active={statusFilter === "all"} />
             <FilterPill href={`/${lang}/users?status=pending${q ? `&q=${encodeURIComponent(q)}` : ""}`}    label={t.filterPending} count={pendingCount} active={statusFilter === "pending"} tone="pending" />
             <FilterPill href={`/${lang}/users?status=danger${q ? `&q=${encodeURIComponent(q)}` : ""}`}     label={t.filterDanger}  count={dangerCount}  active={statusFilter === "danger"} tone="danger" />
             <FilterPill href={`/${lang}/users?status=warn${q ? `&q=${encodeURIComponent(q)}` : ""}`}       label={t.filterWarn}    count={warnCount}    active={statusFilter === "warn"}   tone="warn" />

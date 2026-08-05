@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { execute, query } from "@/lib/db";
 import { logAccess } from "@/lib/access-log";
 import { logStatusChange } from "@/lib/status-log";
+import { isValidIntervalHours } from "@/lib/validation";
 import type { RowDataPacket } from "mysql2";
 
 function generateCode(): string {
@@ -16,7 +17,6 @@ interface DistrictRow extends RowDataPacket { org_id: number; }
 interface OrgDefaultsRow extends RowDataPacket { default_checkin_mode: string; default_interval_hours: number; }
 
 const CHECKIN_MODES = ["manual", "appOpen", "passive"];
-const INTERVAL_HOURS_OPTIONS = [12, 24];
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -61,8 +61,8 @@ export async function POST(req: NextRequest) {
   if (!CHECKIN_MODES.includes(checkinMode)) {
     return NextResponse.json({ error: "올바른 체크인 방식을 선택해주세요." }, { status: 400 });
   }
-  if (!INTERVAL_HOURS_OPTIONS.includes(intervalHours)) {
-    return NextResponse.json({ error: "체크인 주기는 12시간 또는 24시간 중에서 선택해주세요." }, { status: 400 });
+  if (!isValidIntervalHours(intervalHours)) {
+    return NextResponse.json({ error: "체크인 주기는 12~48시간 사이로 입력해주세요." }, { status: 400 });
   }
 
   const { insertId } = await execute(
