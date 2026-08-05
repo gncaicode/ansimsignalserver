@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { LogIn, ShieldAlert, LogOut, Download } from "lucide-react";
+import { LogIn, ShieldAlert, LogOut, Download, Smartphone } from "lucide-react";
 
 type Org = { org_id: number; name: string };
 
@@ -191,6 +191,15 @@ export function LogsClient() {
           >
             <ShieldAlert className="h-4 w-4 shrink-0" />
             개인정보 접근 로그
+          </button>
+
+          <p className="px-2 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">관리</p>
+          <button
+            onClick={() => router.push("/system/app-version")}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <Smartphone className="h-4 w-4 shrink-0" />
+            앱 버전 관리
           </button>
         </nav>
 
