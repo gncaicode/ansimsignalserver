@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LogIn, ShieldAlert, LogOut, Smartphone } from "lucide-react";
+import { LogIn, ShieldAlert, LogOut, Smartphone, Building2 } from "lucide-react";
 
-export type SystemMenuKey = "access" | "personal" | "app-version";
+export type SystemMenuKey = "access" | "personal" | "app-version" | "orgs";
 
 interface SystemSidebarProps {
   active: SystemMenuKey;
@@ -15,12 +15,12 @@ export function SystemSidebar({ active, onSelectLogMenu }: SystemSidebarProps) {
 
   function selectLogMenu(key: "access" | "personal") {
     if (onSelectLogMenu) onSelectLogMenu(key);
-    else router.push(`/system/logs?menu=${key}`);
+    else router.push(`/admin/logs?menu=${key}`);
   }
 
   async function logout() {
     await fetch("/api/system/auth/logout", { method: "POST" });
-    router.push("/system/login");
+    router.push("/admin/login");
   }
 
   return (
@@ -43,7 +43,31 @@ export function SystemSidebar({ active, onSelectLogMenu }: SystemSidebarProps) {
 
       {/* 메뉴 */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        <p className="px-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">로그 조회</p>
+        <p className="px-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">관리</p>
+        <button
+          onClick={() => router.push("/admin/orgs")}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            active === "orgs"
+              ? "bg-trust-50 text-trust-700"
+              : "text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <Building2 className="h-4 w-4 shrink-0" />
+          기관 관리
+        </button>
+        <button
+          onClick={() => router.push("/admin/app-version")}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            active === "app-version"
+              ? "bg-trust-50 text-trust-700"
+              : "text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <Smartphone className="h-4 w-4 shrink-0" />
+          앱 버전 관리
+        </button>
+
+        <p className="px-2 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">로그 조회</p>
         <button
           onClick={() => selectLogMenu("access")}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
@@ -65,19 +89,6 @@ export function SystemSidebar({ active, onSelectLogMenu }: SystemSidebarProps) {
         >
           <ShieldAlert className="h-4 w-4 shrink-0" />
           개인정보 접근 로그
-        </button>
-
-        <p className="px-2 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">관리</p>
-        <button
-          onClick={() => router.push("/system/app-version")}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            active === "app-version"
-              ? "bg-trust-50 text-trust-700"
-              : "text-gray-600 hover:bg-gray-50"
-          }`}
-        >
-          <Smartphone className="h-4 w-4 shrink-0" />
-          앱 버전 관리
         </button>
       </nav>
 

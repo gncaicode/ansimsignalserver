@@ -103,7 +103,7 @@ export function LogsClient() {
       params.set("page", String(p));
 
       const res = await fetch(`/api/system/logs?${params}`);
-      if (res.status === 401) { router.push("/system/login"); return; }
+      if (res.status === 401) { router.push("/admin/login"); return; }
       const data = await res.json();
       setLogs(data.logs ?? []);
       setTotal(data.total ?? 0);

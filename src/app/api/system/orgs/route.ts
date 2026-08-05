@@ -6,6 +6,8 @@ import type { RowDataPacket } from "mysql2";
 interface OrgRow extends RowDataPacket {
   org_id: number;
   name: string;
+  admin_count: number;
+  user_count: number;
 }
 
 export async function GET(req: NextRequest) {
@@ -15,7 +17,15 @@ export async function GET(req: NextRequest) {
   }
 
   const { rows } = await query<OrgRow>(
-    "SELECT org_id, name FROM organizations ORDER BY name ASC",
+    `SELECT
+       o.org_id,
+       o.name,
+       (SELECT COUNT(*) FROM admins a
+         WHERE a.organization_id = o.org_id AND a.active_flag = 1 AND a.withdraw_flag = 0) AS admin_count,
+       (SELECT COUNT(*) FROM users u JOIN districts d ON u.district_id = d.dist_id
+         WHERE d.org_id = o.org_id AND u.active_flag = 1) AS user_count
+     FROM organizations o
+     ORDER BY o.name ASC`,
     [],
   );
 

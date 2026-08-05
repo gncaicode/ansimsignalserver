@@ -6,7 +6,7 @@ export const metadata = { title: "시스템 로그 조회" };
 
 export default async function SystemLogsPage() {
   const ok = await getSystemSession();
-  if (!ok) redirect("/system/login");
+  if (!ok) redirect("/admin/login");
 
   return <LogsClient />;
 }

@@ -24,7 +24,7 @@ export function SystemLoginForm() {
         body: JSON.stringify({ password }),
       });
       if (res.ok) {
-        router.push("/system/logs");
+        router.push("/admin/logs");
       } else {
         const data = await res.json();
         setError(data.error ?? "오류가 발생했습니다.");
