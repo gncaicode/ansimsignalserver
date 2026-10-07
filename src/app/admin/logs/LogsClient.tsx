@@ -26,7 +26,7 @@ const ACCESS_ACTIONS = [
   "view_dashboard", "view_users", "view_user",
   "view_managers", "view_reports", "view_settings",
 ];
-const PERSONAL_ACTIONS = ["create_user", "edit_user", "delete_user", "export_users"];
+const PERSONAL_ACTIONS = ["create_user", "edit_user", "delete_user", "export_users", "self_withdraw"];
 
 const ACTION_LABELS: Record<string, string> = {
   login_success:  "로그인 성공",
@@ -42,6 +42,7 @@ const ACTION_LABELS: Record<string, string> = {
   edit_user:      "대상자 수정",
   delete_user:    "대상자 삭제",
   export_users:   "대상자 내보내기",
+  self_withdraw:  "앱 자가탈퇴",
 };
 
 const MENU_CONFIG: Record<MenuKey, { label: string; actions: string[]; color: string }> = {

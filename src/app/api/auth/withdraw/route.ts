@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute } from '@/lib/db';
 import { getUserFromRequest } from '@/lib/auth';
+import { logAccess } from '@/lib/access-log';
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -19,6 +20,7 @@ export async function DELETE(req: NextRequest) {
        WHERE user_id = ?`,
       [user.user_id]
     );
+    await logAccess({ action: 'self_withdraw', resource: `user_id=${user.user_id}`, req });
     return NextResponse.json({ message: '탈퇴가 완료되었습니다. 모든 데이터가 삭제되었습니다.' });
   } catch (err) {
     console.error('[DELETE /api/auth/withdraw]', err);

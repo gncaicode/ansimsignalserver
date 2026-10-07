@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     "view_dashboard", "view_users", "view_user",
     "view_managers", "view_reports", "view_settings",
   ];
-  const PERSONAL_ACTIONS = ["create_user", "edit_user", "delete_user", "export_users"];
+  const PERSONAL_ACTIONS = ["create_user", "edit_user", "delete_user", "export_users", "self_withdraw"];
 
   const conditions: string[] = [];
   const params: (string | number)[] = [];

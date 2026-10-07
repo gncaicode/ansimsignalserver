@@ -15,7 +15,8 @@ export type AccessAction =
   | "create_user"
   | "edit_user"
   | "delete_user"
-  | "export_users";
+  | "export_users"
+  | "self_withdraw";
 
 function extractIp(headers: NextRequest["headers"] | ReadonlyHeaders): string | null {
   return (
