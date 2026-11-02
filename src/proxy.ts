@@ -12,7 +12,7 @@ const SYSTEM_COOKIE = "system_session";
 // (app) 보호 경로
 const PROTECTED = /^\/[a-z]{2}\/(dashboard|users|managers|alerts|reports|settings)/;
 // 시스템 보호 경로
-const SYSTEM_PROTECTED = /^\/admin\/(logs|app-version|orgs)/;
+const SYSTEM_PROTECTED = /^\/admin($|\/(logs|app-version|orgs|alerts|cron-health))/;
 
 function detectLocale(request: NextRequest): string {
   const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
@@ -54,7 +54,11 @@ export async function proxy(request: NextRequest) {
   }
 
   // 2) 시스템 경로 및 공개 페이지는 로케일 리다이렉트 제외
-  if (pathname.startsWith("/admin") || pathname.startsWith("/delete-account")) {
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/delete-account") ||
+    pathname.startsWith("/ansimsignal_open")
+  ) {
     return NextResponse.next();
   }
 
