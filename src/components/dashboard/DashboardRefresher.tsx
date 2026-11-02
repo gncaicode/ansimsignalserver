@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-export function DashboardRefresher({ logAction }: { logAction?: "view_dashboard" } = {}) {
+export function DashboardRefresher({ logAction }: { logAction?: "view_dashboard" | "view_users" } = {}) {
   const router = useRouter();
 
   useEffect(() => {

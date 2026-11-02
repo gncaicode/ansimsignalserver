@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Building2, ChevronRight } from "lucide-react";
 import { SystemSidebar } from "@/components/system/SystemSidebar";
 
 interface OrgRow {
@@ -12,6 +13,7 @@ interface OrgRow {
 }
 
 export function OrgsClient() {
+  const router = useRouter();
   const [orgs, setOrgs] = useState<OrgRow[] | null>(null);
   const [error, setError] = useState("");
 
@@ -49,18 +51,23 @@ export function OrgsClient() {
                     <th className="px-4 py-3">기관명</th>
                     <th className="px-4 py-3 text-center">관리자 수</th>
                     <th className="px-4 py-3 text-center">대상자 수</th>
+                    <th className="px-4 py-3 w-8"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {orgs.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="px-4 py-8 text-center text-gray-400">
+                      <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
                         등록된 기관이 없습니다.
                       </td>
                     </tr>
                   ) : (
                     orgs.map((org) => (
-                      <tr key={org.org_id} className="hover:bg-gray-50/60">
+                      <tr
+                        key={org.org_id}
+                        onClick={() => router.push(`/admin/orgs/${org.org_id}`)}
+                        className="hover:bg-gray-50/60 cursor-pointer"
+                      >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2 font-medium text-gray-900">
                             <Building2 className="h-4 w-4 text-trust-700 shrink-0" />
@@ -69,6 +76,9 @@ export function OrgsClient() {
                         </td>
                         <td className="px-4 py-3 text-center">{org.admin_count}</td>
                         <td className="px-4 py-3 text-center">{org.user_count}</td>
+                        <td className="px-4 py-3 text-right">
+                          <ChevronRight className="h-4 w-4 text-gray-300" />
+                        </td>
                       </tr>
                     ))
                   )}

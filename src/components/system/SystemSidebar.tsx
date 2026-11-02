@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LogIn, ShieldAlert, LogOut, Smartphone, Building2 } from "lucide-react";
+import { LogIn, ShieldAlert, LogOut, Smartphone, Building2, LayoutDashboard, Mail, Activity } from "lucide-react";
 
-export type SystemMenuKey = "access" | "personal" | "app-version" | "orgs";
+export type SystemMenuKey = "dashboard" | "access" | "personal" | "app-version" | "orgs" | "alerts" | "cron-health";
 
 interface SystemSidebarProps {
   active: SystemMenuKey;
@@ -43,7 +43,19 @@ export function SystemSidebar({ active, onSelectLogMenu }: SystemSidebarProps) {
 
       {/* 메뉴 */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        <p className="px-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">관리</p>
+        <button
+          onClick={() => router.push("/admin")}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            active === "dashboard"
+              ? "bg-trust-50 text-trust-700"
+              : "text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <LayoutDashboard className="h-4 w-4 shrink-0" />
+          대시보드
+        </button>
+
+        <p className="px-2 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">관리</p>
         <button
           onClick={() => router.push("/admin/orgs")}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
@@ -65,6 +77,30 @@ export function SystemSidebar({ active, onSelectLogMenu }: SystemSidebarProps) {
         >
           <Smartphone className="h-4 w-4 shrink-0" />
           앱 버전 관리
+        </button>
+
+        <p className="px-2 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">모니터링</p>
+        <button
+          onClick={() => router.push("/admin/alerts")}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            active === "alerts"
+              ? "bg-red-50 text-red-700"
+              : "text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <Mail className="h-4 w-4 shrink-0" />
+          위급 알림 이력
+        </button>
+        <button
+          onClick={() => router.push("/admin/cron-health")}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            active === "cron-health"
+              ? "bg-trust-50 text-trust-700"
+              : "text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <Activity className="h-4 w-4 shrink-0" />
+          크론 상태
         </button>
 
         <p className="px-2 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">로그 조회</p>

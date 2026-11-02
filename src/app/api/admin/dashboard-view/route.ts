@@ -3,7 +3,7 @@ import { getSession } from "@/lib/session";
 import { logAccess, type AccessAction } from "@/lib/access-log";
 
 // DashboardRefresher가 여러 화면에서 공용으로 쓰이므로, 마운트된 화면에 맞는 조회 액션만 기록한다.
-const ALLOWED_ACTIONS: AccessAction[] = ["view_dashboard"];
+const ALLOWED_ACTIONS: AccessAction[] = ["view_dashboard", "view_users"];
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
