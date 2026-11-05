@@ -4,6 +4,7 @@ import { execute, query } from "@/lib/db";
 import { logAccess } from "@/lib/access-log";
 import { logStatusChange } from "@/lib/status-log";
 import { isValidIntervalHours } from "@/lib/validation";
+import { getUserAddBlockReason } from "@/lib/org-plan";
 import type { RowDataPacket } from "mysql2";
 
 function generateCode(): string {
@@ -24,6 +25,8 @@ export async function POST(req: NextRequest) {
   if (!["superadmin", "admin", "social_worker"].includes(session.role)) {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
+  const blocked = await getUserAddBlockReason(session.organization_id);
+  if (blocked) return NextResponse.json({ error: blocked }, { status: 403 });
 
   const body = await req.json();
   const name           = String(body.name           ?? "").trim();

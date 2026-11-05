@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { execute, query } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { getWriteBlockReason } from "@/lib/org-plan";
 import type { RowDataPacket } from "mysql2";
 
 interface DupRow extends RowDataPacket { admin_id: number; }
@@ -14,6 +15,8 @@ export async function POST(req: NextRequest) {
     if (!["superadmin", "admin"].includes(session.role)) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
+    const blocked = await getWriteBlockReason(session.organization_id);
+    if (blocked) return NextResponse.json({ error: blocked }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
     const { name, email, password, phone, position, department, role } = body;
@@ -54,8 +57,8 @@ export async function POST(req: NextRequest) {
     const emailNorm = email.trim().toLowerCase();
 
     const { insertId } = await execute(
-      `INSERT INTO admins (password_hash, name, organization_id, phone, position, department, email, role, active_flag, joined_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, CURDATE())`,
+      `INSERT INTO admins (password_hash, name, organization_id, phone, position, department, email, email_verified_at, role, active_flag, joined_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?, 1, CURDATE())`,
       [passwordHash, name.trim(), session.organization_id, phone ?? "", position ?? "", department ?? "", emailNorm, role]
     );
 

@@ -15,6 +15,8 @@ interface AdminRow extends RowDataPacket {
   organization_id: number | null;
   active_flag: number;
   withdraw_flag: number;
+  email_verified_at: string | null;
+  plan_status: string | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -25,7 +27,11 @@ export async function POST(req: NextRequest) {
   }
 
   const { rows } = await query<AdminRow>(
-    "SELECT admin_id, name, email, password_hash, role, organization_id, active_flag, withdraw_flag FROM admins WHERE email = ? LIMIT 1",
+    `SELECT a.admin_id, a.name, a.email, a.password_hash, a.role, a.organization_id,
+            a.active_flag, a.withdraw_flag, a.email_verified_at, o.plan_status
+     FROM admins a
+     LEFT JOIN organizations o ON o.org_id = a.organization_id
+     WHERE a.email = ? LIMIT 1`,
     [email],
   );
 
@@ -48,6 +54,18 @@ export async function POST(req: NextRequest) {
   if (!valid) {
     await logAccess({ adminId: admin.admin_id, action: "login_fail", email, req });
     return NextResponse.json({ error: "이메일 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
+  }
+
+  // 비밀번호가 맞을 때만 인증·이용 상태를 알려준다 (계정 존재 여부 노출 방지)
+  if (!admin.email_verified_at) {
+    return NextResponse.json(
+      { error: "이메일 인증이 필요합니다. 가입할 때 받은 메일의 링크를 열어 주세요.", code: "email_unverified" },
+      { status: 403 },
+    );
+  }
+
+  if (admin.plan_status === "suspended") {
+    return NextResponse.json({ error: "이용이 정지된 기관입니다. 운영사에 문의해 주세요." }, { status: 403 });
   }
 
   return establishAdminSession(admin, req);

@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { execute, query } from "@/lib/db";
 import { logAccess } from "@/lib/access-log";
 import { logStatusChange } from "@/lib/status-log";
+import { getOrgPlan, getWriteBlockReason } from "@/lib/org-plan";
 import type { RowDataPacket } from "mysql2";
 import * as XLSX from "xlsx";
 
@@ -22,6 +23,8 @@ export async function POST(req: NextRequest) {
   if (!["superadmin", "admin", "social_worker"].includes(session.role)) {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
+  const blocked = await getWriteBlockReason(session.organization_id);
+  if (blocked) return NextResponse.json({ error: blocked }, { status: 403 });
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
@@ -58,6 +61,10 @@ export async function POST(req: NextRequest) {
   let inserted = 0;
   const errors: string[] = [];
 
+  // 대상자 상한이 있으면 남은 자리만큼만 등록한다.
+  const plan = orgId ? await getOrgPlan(orgId) : null;
+  const remaining = plan?.userLimit != null ? Math.max(0, plan.userLimit - plan.userCount) : Infinity;
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const rowNum = i + 2; // 헤더 제외
@@ -75,6 +82,11 @@ export async function POST(req: NextRequest) {
 
     if (districtName && !district) {
       errors.push(`${rowNum}행: 구역 '${districtName}'을 찾을 수 없습니다.`);
+      continue;
+    }
+
+    if (inserted >= remaining) {
+      errors.push(`${rowNum}행: 등록 가능한 대상자 수(${plan?.userLimit}명)를 넘어 등록하지 않았습니다.`);
       continue;
     }
 

@@ -63,6 +63,7 @@ export function SignupForm({ lang, t }: { lang: string; t: SignupDict }) {
           agree_terms:     form.agree_terms,
           agree_privacy:   form.agree_privacy,
           agree_marketing: form.agree_marketing,
+          lang,
         }),
       });
 
@@ -72,7 +73,7 @@ export function SignupForm({ lang, t }: { lang: string; t: SignupDict }) {
         return;
       }
 
-      router.push(`/${lang}/login?registered=1`);
+      router.push(`/${lang}/login?registered=1&email=${encodeURIComponent(form.email)}`);
     } catch {
       setError("서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요.");
     } finally {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
+import { getWriteBlockReason } from "@/lib/org-plan";
 import { execute, query } from "@/lib/db";
 import { logAccess } from "@/lib/access-log";
 import { isValidIntervalHours } from "@/lib/validation";
@@ -36,6 +37,8 @@ export async function PATCH(
   if (!["superadmin", "admin", "social_worker"].includes(session.role)) {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
+  const blocked = await getWriteBlockReason(session.organization_id);
+  if (blocked) return NextResponse.json({ error: blocked }, { status: 403 });
 
   const { id } = await params;
   const userId = Number(id);

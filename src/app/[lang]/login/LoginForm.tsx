@@ -17,19 +17,27 @@ type LoginDict = {
   testLogin: string; testLoginLoading: string;
   noAccount: string; noAccountCta: string;
   legalNote: string;
+  registeredNotice: string;
+  resendVerification: string;
+  resendDone: string;
 };
 
-export function LoginForm({ lang, t }: { lang: string; t: LoginDict }) {
+export function LoginForm({
+  lang, t, registered = false, initialEmail = "",
+}: { lang: string; t: LoginDict; registered?: boolean; initialEmail?: string }) {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
+  const [unverified, setUnverified] = useState(false);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "done">("idle");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setUnverified(false);
     setLoading(true);
     try {
       const res = await fetch("/api/admin/auth/login", {
@@ -40,6 +48,7 @@ export function LoginForm({ lang, t }: { lang: string; t: LoginDict }) {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "오류가 발생했습니다.");
+        setUnverified(data.code === "email_unverified");
         return;
       }
       router.push(`/${lang}/dashboard`);
@@ -47,6 +56,21 @@ export function LoginForm({ lang, t }: { lang: string; t: LoginDict }) {
       setError("서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function resendVerification() {
+    setResendState("sending");
+    try {
+      await fetch("/api/admin/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, lang }),
+      });
+      setResendState("done");
+    } catch {
+      setResendState("idle");
+      setError("서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요.");
     }
   }
 
@@ -70,6 +94,11 @@ export function LoginForm({ lang, t }: { lang: string; t: LoginDict }) {
 
   return (
     <form className="space-y-5" onSubmit={submit}>
+      {registered && (
+        <div className="rounded-lg border border-trust-100 bg-trust-50 p-3 text-sm text-trust-800 leading-relaxed">
+          {t.registeredNotice}
+        </div>
+      )}
       <div>
         <Label htmlFor="email">{t.labelEmail}</Label>
         <Input
@@ -102,6 +131,22 @@ export function LoginForm({ lang, t }: { lang: string; t: LoginDict }) {
 
       {error && (
         <p className="text-sm text-red-600 text-center">{error}</p>
+      )}
+
+      {unverified && (
+        resendState === "done" ? (
+          <p className="text-sm text-trust-700 text-center">{t.resendDone}</p>
+        ) : (
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full"
+            disabled={resendState === "sending"}
+            onClick={resendVerification}
+          >
+            {t.resendVerification}
+          </Button>
+        )
       )}
 
       <Button type="submit" size="lg" className="w-full" disabled={loading || testLoading}>

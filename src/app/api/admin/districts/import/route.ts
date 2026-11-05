@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
+import { getWriteBlockReason } from "@/lib/org-plan";
 import { execute, query } from "@/lib/db";
 import type { RowDataPacket } from "mysql2";
 import * as XLSX from "xlsx";
@@ -12,6 +13,8 @@ export async function POST(req: NextRequest) {
   if (!["superadmin", "admin"].includes(session.role)) {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
+  const blocked = await getWriteBlockReason(session.organization_id);
+  if (blocked) return NextResponse.json({ error: blocked }, { status: 403 });
 
   const orgId = session.organization_id;
   if (!orgId) return NextResponse.json({ error: "소속 기관이 없습니다." }, { status: 400 });

@@ -8,6 +8,9 @@ export default async function LoginPage(props: PageProps<"/[lang]/login">) {
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
   const t = dict.auth.login;
+  const searchParams = await props.searchParams;
+  const registered = searchParams?.registered === "1";
+  const initialEmail = typeof searchParams?.email === "string" ? searchParams.email : "";
 
   return (
     <AuthLayout
@@ -16,7 +19,7 @@ export default async function LoginPage(props: PageProps<"/[lang]/login">) {
       subtitle={t.subtitle}
       panel={dict.auth.brandPanel}
     >
-      <LoginForm lang={lang} t={t} />
+      <LoginForm lang={lang} t={t} registered={registered} initialEmail={initialEmail} />
     </AuthLayout>
   );
 }
